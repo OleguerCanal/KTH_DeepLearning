@@ -70,8 +70,6 @@ class Sequential:
         return loss/Y_pred_prob.shape[1] + self.reg_term*w_norm
 
     def fit(self, X, Y, X_val=None, Y_val=None, batch_size=None, epochs=100, lr=0.01, momentum=0.7, l2_reg=0.1):
-        # print("------------------------------Fitting")
-        # print((batch_size > X.shape[1]))
         if (batch_size is None) or (batch_size > X.shape[1]):
             batch_size = X.shape[1]
 
@@ -90,14 +88,10 @@ class Sequential:
                 Y_minibatch = Y[:, indx[i:i+batch_size]]
                 
                 # Forward pass
-                # print("------------------------------forward")
                 Y_pred_prob = self.predict(X_minibatch)
 
                 # Backprop
-                # print("------------------------------loss diferentiation")
                 gradient = self.__loss_differential(Y_pred_prob, Y_minibatch)  # First error id (D loss)/(D weight)
-                # print("loss gradient:\n", gradient)
-                # print("------------------------------backward")
                 for layer in reversed(self.layers):  # Next errors given by each layer weights
                     if layer.type == "activation":  # TODO: Do this nicely (use kwargs or something)
                         gradient = layer.backward(
@@ -109,15 +103,9 @@ class Sequential:
                                         momentum=momentum,
                                         l2_regularization=l2_reg)[:-1, :]  # Remove bias
 
-            # print("------------------------------errors")
             # Error tracking:
             train_acc, train_loss = self.get_metrics(X, Y)
             val_acc, val_loss = self.get_metrics(X_val, Y_val)
-            
-            print(self.get_metrics(X, Y))
-            print(self.get_metrics(X_val, Y_val))
-            # print("####")
-            
             self.train_accuracies.append(train_acc)
             self.val_accuracies.append(val_acc)
             self.train_losses.append(train_loss)
@@ -135,7 +123,7 @@ class Sequential:
             ax1.plot(list(range(len(self.val_losses))),
                      self.val_losses, label="Val loss", c="red")
         ax1.tick_params(axis='y')
-        # plt.legend()
+        plt.legend(loc='best')
         
         # Accuracies
         ax2 = ax1.twinx()
@@ -151,7 +139,7 @@ class Sequential:
         
         # fig.tight_layout()
         plt.title("Training Evolution")
-        plt.legend()
+        plt.legend(loc='best')
         
         if save:
             plt.savefig("figures/" + name + ".png")
