@@ -23,9 +23,6 @@ if __name__ == "__main__":
     model.add(Dense(nodes=10, input_dim=x_train.shape[0]))
     model.add(Activation("softmax"))
 
-    proba_predictions = model.predict(x_train[:, 0:5])
-    class_prediction = prob_to_class(proba_predictions)
-
     # Fit model
     model.fit(X=x_train, Y=y_train, X_val=x_val, Y_val=y_val,
             batch_size=1000, epochs=50, lr=0.001, momentum=0.01, l2_reg=0.01)
