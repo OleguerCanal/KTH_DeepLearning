@@ -6,6 +6,7 @@ from matplotlib import pyplot as plt
 import copy
 
 class Dense:
+    type = "dense"
     def __init__(self, nodes, input_dim):
         self.nodes = nodes
         self.input_shape = input_dim
@@ -34,11 +35,12 @@ class Dense:
 
         # Weight update
         self.dw = momentum*self.dw + (1-momentum)*(in_gradient*self.inputs.T + regularization_term)
-        self.weights = lr*self.dw  # NOTE: Maybe positive
+        self.weights = -lr*self.dw  # NOTE: Maybe positive
         return left_layer_gradient
 
  
 class Activation:
+    type = "activation"
     def __init__(self, activation="softmax"):
         self.activation_name = activation
         self.weights = 0

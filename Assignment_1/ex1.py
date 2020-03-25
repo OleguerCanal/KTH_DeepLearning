@@ -29,7 +29,9 @@ if __name__ == "__main__":
 
     # Fit model
     model.fit(X=x_train, Y=y_train, X_val=x_val, Y_val=y_val,
-            batch_size=100, epochs=40, lr=0.01, momentum=0.0, l2_reg=0.0)
+            batch_size=100, epochs=5, lr=0.01, momentum=0.0, l2_reg=0.0)
+    model.plot_training_progress()
+
 
     # Test model
     proba_predictions = model.predict(x_train[:, 0:5])
