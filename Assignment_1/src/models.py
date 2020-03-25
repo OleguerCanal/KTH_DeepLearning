@@ -14,7 +14,7 @@ from utils import prob_to_class, accuracy
 class Sequential:
     def __init__(self, loss="cross_entropy", reg_term=0.1):
         self.layers = []
-        self.loss = loss
+        self.loss_type = loss
         self.reg_term = reg_term
 
     def add(self, layer):
@@ -41,12 +41,12 @@ class Sequential:
         return -np.sum(np.log(np.sum(np.multiply(Y_pred, Y_real), axis=0)))
 
     def __loss(self, Y_pred_prob, Y_real):
-        if self.loss == "cross_entropy":
+        if self.loss_type == "cross_entropy":
             return self.__cross_entropy(Y_pred_prob, Y_real)
         return None
 
     def __loss_differential(self, Y_pred, Y_real):
-        if self.loss == "cross_entropy":
+        if self.loss_type == "cross_entropy":
             # d (-log(x))/dx = -1/x 
             f_y = np.multiply(Y_real, Y_pred)
             loss_diff = -np.reciprocal(f_y, out=np.zeros_like(Y_pred), where=abs(f_y)>0.000001)  # Element-wise inverse
@@ -59,7 +59,7 @@ class Sequential:
         """Computes cost = loss + regularization"""
         # Loss
         loss = 0
-        if self.loss == "cross_entropy":
+        if self.loss_type == "cross_entropy":
             loss = self.__cross_entropy(Y_pred_prob, Y_real)
 
         # Regularization
@@ -93,16 +93,12 @@ class Sequential:
                 # Backprop
                 gradient = self.__loss_differential(Y_pred_prob, Y_minibatch)  # First error id (D loss)/(D weight)
                 for layer in reversed(self.layers):  # Next errors given by each layer weights
-                    if layer.type == "activation":  # TODO: Do this nicely (use kwargs or something)
-                        gradient = layer.backward(
-                                        in_gradient=gradient)
-                    else:
-                        gradient = layer.backward(
-                                        in_gradient=gradient,
-                                        lr=lr,
-                                        momentum=momentum,
-                                        l2_regularization=l2_reg)[:-1, :]  # Remove bias
-
+                    gradient = layer.backward(
+                                    in_gradient=gradient,
+                                    lr=lr,
+                                    momentum=momentum,
+                                    l2_regularization=l2_reg)
+                
             # Error tracking:
             train_acc, train_loss = self.get_metrics(X, Y)
             val_acc, val_loss = self.get_metrics(X_val, Y_val)
@@ -110,7 +106,6 @@ class Sequential:
             self.val_accuracies.append(val_acc)
             self.train_losses.append(train_loss)
             self.val_losses.append(val_loss)
-
 
     def plot_training_progress(self, show=True, save=False, name="model_results"):
         fig, ax1 = plt.subplots()
@@ -123,7 +118,7 @@ class Sequential:
             ax1.plot(list(range(len(self.val_losses))),
                      self.val_losses, label="Val loss", c="red")
         ax1.tick_params(axis='y')
-        plt.legend(loc='best')
+        plt.legend(loc='upper right')
         
         # Accuracies
         ax2 = ax1.twinx()
@@ -139,7 +134,7 @@ class Sequential:
         
         # fig.tight_layout()
         plt.title("Training Evolution")
-        plt.legend(loc='best')
+        plt.legend(loc='center right')
         
         if save:
             plt.savefig("figures/" + name + ".png")
