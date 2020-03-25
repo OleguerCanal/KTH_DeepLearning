@@ -25,18 +25,20 @@ if __name__ == "__main__":
 
     proba_predictions = model.predict(x_train[:, 0:5])
     class_prediction = prob_to_class(proba_predictions)
-    print(proba_predictions)
+
+    print(model.get_metrics(x_train, y_train))
 
     # Fit model
-    model.fit(X=x_train, Y=y_train, X_val=x_val, Y_val=y_val,
+    model.fit(X=x_train[:, :5], Y=y_train[:, :5], X_val=x_val, Y_val=y_val,
             batch_size=100, epochs=5, lr=0.01, momentum=0.0, l2_reg=0.0)
     model.plot_training_progress()
+
+    print(model.get_metrics(x_train, y_train))
 
 
     # Test model
     proba_predictions = model.predict(x_train[:, 0:5])
     class_prediction = prob_to_class(proba_predictions)
-    print(proba_predictions)
 
     test_acc, test_loss = model.get_metrics(x_test, y_test)
     print("Test accuracy:", test_acc)

@@ -4,6 +4,7 @@ import time
 import math
 from matplotlib import pyplot as plt
 import copy
+import sys
 
 class Dense:
     type = "dense"
@@ -34,8 +35,9 @@ class Dense:
         regularization_term = 2*l2_regularization*regularization_weights # Only current layer weights != 0
 
         # Weight update
-        self.dw = momentum*self.dw + (1-momentum)*(in_gradient*self.inputs.T + regularization_term)
-        self.weights = -lr*self.dw  # NOTE: Maybe positive
+        n = self.inputs.shape[1]
+        self.dw = momentum*self.dw + (1-momentum)*(in_gradient*self.inputs.T/n + regularization_term)
+        self.weights -= lr*self.dw
         return left_layer_gradient
 
  
@@ -54,15 +56,15 @@ class Activation:
             self.outputs = self.__relu(inputs)
         return self.outputs 
 
-    def backward(self, in_gradient, Y_real):
-        # NOTE: Why softmx needs Y_real and relu doesnt need anything? (last layer?)
-        # Maybe I'm doing something wrong (what if softmax was in the middle?)   
-        if self.activation_name == "softmax":
-            softmax_diff = np.multiply(np.multiply(self.outputs, Y_real), Y_real - self.outputs)
-            return np.multiply(in_gradient, softmax_diff)
+    def backward(self, in_gradient):
+        # Gradient of activation function evaluated at pre-activation
+        if self.activation_name == "softmax":  # This shit took waaay too long to figure out
+            diags = np.einsum("ik,ij->ijk", self.outputs, np.eye(self.outputs.shape[0]))
+            out_prod = np.einsum("ik,jk->ijk", self.outputs, self.outputs)
+            gradient = np.einsum("ijk,jk->ik", (diags - out_prod), in_gradient)
+            return gradient
         if self.activation_name == "relu":
-            # Gradient of activation function evaluated at pre-activation
-            return in_gradient * (self.inputs > 0)
+            return (self.inputs > 0)*in_gradient  # This is probably not ok
         return None
 
     def __softmax(self, x):
@@ -70,6 +72,7 @@ class Activation:
 
     def __relu(self, x):
         return x * (x > 0)
+
 
 if __name__ == "__main__":
     layer = Dense(3, 7)
