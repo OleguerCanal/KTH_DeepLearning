@@ -10,15 +10,15 @@ from mlp.models import Sequential
 from mlp.layers import Activation, Dense
 from mlp.utils import getXY, LoadBatch, prob_to_class
 
-def evaluate_cost(W, x, y_real):
+def evaluate_cost(W, x, y_real, l2_reg):
     model.layers[0].weights = W
     y_pred = model.predict(x)
-    c = model.cost(y_pred, y_real)
+    c = model.cost(y_pred, y_real, l2_reg)
     return c
 
-def ComputeGradsNum(x, y_real, model, h):
+def ComputeGradsNum(x, y_real, model, l2_reg, h):
     """ Converted from matlab code """
-    print("COmputing numerical gradients...")
+    print("Computing numerical gradients...")
     W = copy.deepcopy(model.layers[0].weights)
 
     no 	= 	W.shape[0]
@@ -30,11 +30,11 @@ def ComputeGradsNum(x, y_real, model, h):
         for j in range(W.shape[1]):
             W_try = np.matrix(W)
             W_try[i,j] -= h
-            c1 = evaluate_cost(W_try, x, y_real)
+            c1 = evaluate_cost(W_try, x, y_real, l2_reg)
             
             W_try = np.matrix(W)
             W_try[i,j] += h
-            c2 = evaluate_cost(W_try, x, y_real)
+            c2 = evaluate_cost(W_try, x, y_real, l2_reg)
             
             grad_W[i,j] = (c2-c1) / (2*h)
     return grad_W
@@ -56,19 +56,19 @@ if __name__ == "__main__":
     reg = 0.1
 
     # Define model
-    model = Sequential(loss="cross_entropy", reg_term=reg)
+    model = Sequential(loss="cross_entropy")
     model.add(Dense(nodes=10, input_dim=x.shape[0], weight_initialization="fixed"))
     model.add(Activation("softmax"))
 
     anal_time = time.time()
-    analytical_grad = model.fit(x, y,
-                                batch_size=10000, epochs=1, lr=0, # 0 lr will not change weights
-                                momentum=0, l2_reg=reg)
+    model.fit(x, y, batch_size=10000, epochs=1, lr=0, # 0 lr will not change weights
+                    momentum=0, l2_reg=reg)
+    analytical_grad = model.layers[0].gradient
     anal_time = anal_time - time.time()
 
     # Get Numerical gradient
     num_time = time.time()
-    numerical_grad = ComputeGradsNum(x, y, model, h=0.001)
+    numerical_grad = ComputeGradsNum(x, y, model, l2_reg=reg, h=0.001)
     num_time = num_time - time.time()
 
     _EPS = 0.0000001
