@@ -47,12 +47,12 @@ def evaluator(x_train, y_train, x_val, y_val, x_test, y_test, experiment_path=""
     subtitle = "l2_reg: " + str(kwargs["l2_reg"]) + ", lr: " + str(kwargs["lr"]) + ", Test Acc: " + str(test_acc)
     model.plot_training_progress(show=False,
                                 save=True,
-                                name="figures/" + dict_to_string(kwargs),
+                                name="figures/param_testing/" + dict_to_string(kwargs),
                                 subtitle=subtitle)
     model.save(experiment_path + "/" + dict_to_string(kwargs))
     montage(W=np.array(model.layers[0].weights[:, :-1]),
             title=subtitle,
-            path="figures/" + dict_to_string(kwargs) + "_weights")
+            path="figures/param_testing/" + dict_to_string(kwargs) + "_weights")
 
     # Minimizing value: validation accuracy
     val_acc = model.get_classification_metrics(x_val, y_val)[0] # Get accuracy
