@@ -11,14 +11,15 @@ from util.misc import dict_to_string
 import numpy as np
 import matplotlib.pyplot as plt
 
-np.random.seed(0)
+np.random.seed(1)
 
-def montage(W, path=None):
+def montage(W, title, path=None):
     """ Display the image for each label in W """
     fig, ax = plt.subplots(2,5)
+    plt.suptitle(title)
     for i in range(2):
         for j in range(5):
-            im  = W[i+j,:].reshape(32,32,3, order='F')
+            im  = W[5*i+j,:].reshape(32,32,3, order='F')
             sim = (im-np.min(im[:]))/(np.max(im[:])-np.min(im[:]))
             sim = sim.transpose(1,0,2)
             ax[i][j].imshow(sim, interpolation='nearest')
@@ -50,6 +51,7 @@ def evaluator(x_train, y_train, x_val, y_val, x_test, y_test, experiment_path=""
                                 subtitle=subtitle)
     model.save(experiment_path + "/" + dict_to_string(kwargs))
     montage(W=np.array(model.layers[0].weights[:, :-1]),
+            title=subtitle,
             path="figures/" + dict_to_string(kwargs) + "_weights")
 
     # Minimizing value: validation accuracy
@@ -101,11 +103,14 @@ if __name__ == "__main__":
                                 dicts_list=dicts_list,
                                 fixed_args=fixed_args)
 
-    # model = Sequential(loss="cross_entropy")
-    # model.add(
-    #     Dense(nodes=10, input_dim=x_train.shape[0], weight_initialization="fixed"))
-    # model.add(Activation("softmax"))
-    # montage(W=np.array(model.layers[0].weights[:, :-1]))
+    model = Sequential(loss="cross_entropy")
+    model.add(
+        Dense(nodes=10, input_dim=x_train.shape[0], weight_initialization="fixed"))
+    model.add(Activation("softmax"))
+    # model.fit(X=x_train, Y=y_train, X_val=x_val, Y_val=y_val,
+    #         batch_size=500, epochs=2, lr=0.001, # 0 lr will not change weights
+    #         momentum=0, l2_reg=0.1)
+    # montage(W=np.array(model.layers[0].weights[:, :-1]), title="bla bla")
 
     # Test model
     test_acc, test_loss = best_model["model"].get_classification_metrics(x_test, y_test)
