@@ -56,19 +56,23 @@ if __name__ == "__main__":
     reg = 0.1
 
     # Define model
-    model = Sequential(loss="cross_entropy")
+    model = Sequential(loss="categorical_hinge")
     model.add(Dense(nodes=10, input_dim=x.shape[0], weight_initialization="fixed"))
-    model.add(Activation("softmax"))
 
     anal_time = time.time()
-    model.fit(x, y, batch_size=10000, epochs=1, lr=0, # 0 lr will not change weights
-                    momentum=0, l2_reg=reg)
+    model.fit(x, y, X_val=x_val, Y_val=y_val,
+              batch_size=10000, epochs=1, lr=0, # 0 lr will not change weights
+              momentum=0, l2_reg=reg)
     analytical_grad = model.layers[0].gradient
+    print(analytical_grad.shape)
     anal_time = anal_time - time.time()
+
+    print("ok")
 
     # Get Numerical gradient
     num_time = time.time()
     numerical_grad = ComputeGradsNum(x, y, model, l2_reg=reg, h=0.001)
+    print(numerical_grad.shape)
     num_time = num_time - time.time()
 
     _EPS = 0.0000001
