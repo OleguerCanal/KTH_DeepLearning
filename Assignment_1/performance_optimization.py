@@ -49,7 +49,7 @@ def evaluator(x_train, y_train, x_val, y_val, x_test, y_test, experiment_name=""
     # Plot results
     test_acc = best_model.get_classification_metrics(x_test, y_test)[0]
     subtitle = "l2_reg: " + str(kwargs["l2_reg"]) + ", lr: " + str(kwargs["lr"]) +\
-                "weight_init:" + init + ", Test Acc: " + str(test_acc)
+                ", weight_init:" + init + ", Test Acc: " + str(test_acc)
     best_model.plot_training_progress(show=False,
                                     save=True,
                                     name="figures/" + experiment_name + "/" + dict_to_string(kwargs) + "_" + init,
@@ -98,7 +98,7 @@ if __name__ == "__main__":
         "y_val" : y_val,
         "x_test" : x_test,
         "y_test" : y_test,
-        "epochs" : 60,
+        "epochs" : 100,
         "momentum" : 0.5,
     }
     # NOTE: The union of both dictionaries should contain all evaluator parameters
