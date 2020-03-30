@@ -5,10 +5,13 @@ sys.path.append(str(pathlib.Path(__file__).resolve().parents[1]) + "/Toy-DeepLea
 import numpy as np
 import copy
 import time
+from tqdm import tqdm
 
 from mlp.models import Sequential
 from mlp.layers import Activation, Dense
 from mlp.utils import getXY, LoadBatch, prob_to_class
+
+np.random.seed(0)
 
 def evaluate_cost(W, x, y_real, l2_reg):
     model.layers[0].weights = W
@@ -26,13 +29,13 @@ def ComputeGradsNum(x, y_real, model, l2_reg, h):
 
     # c = evaluate_cost(W, x, y_real)
     grad_W = np.zeros(W.shape)
-    for i in range(W.shape[0]):
+    for i in tqdm(range(W.shape[0])):
         for j in range(W.shape[1]):
-            W_try = np.matrix(W)
+            W_try = copy.deepcopy(W)
             W_try[i,j] -= h
             c1 = evaluate_cost(W_try, x, y_real, l2_reg)
             
-            W_try = np.matrix(W)
+            W_try = copy.deepcopy(W)
             W_try[i,j] += h
             c2 = evaluate_cost(W_try, x, y_real, l2_reg)
             
@@ -41,18 +44,18 @@ def ComputeGradsNum(x, y_real, model, l2_reg, h):
 
 if __name__ == "__main__":
     x_train, y_train = getXY(LoadBatch("data_batch_1"))
-    x_val, y_val = getXY(LoadBatch("data_batch_2"))
-    x_test, y_test = getXY(LoadBatch("test_batch"))
+    # x_val, y_val = getXY(LoadBatch("data_batch_2"))
+    # x_test, y_test = getXY(LoadBatch("test_batch"))
 
     # Preprocessing
     mean_x = np.mean(x_train)
     std_x = np.std(x_train)
     x_train = (x_train - mean_x)/std_x
-    x_val = (x_val - mean_x)/std_x
-    x_test = (x_test - mean_x)/std_x
+    # x_val = (x_val - mean_x)/std_x
+    # x_test = (x_test - mean_x)/std_x
 
-    x = x_train[:, 0]
-    y = y_train[:, 0]
+    x = x_train[:, 0:5]
+    y = y_train[:, 0:5]
     reg = 0.1
 
     # Define model
@@ -60,14 +63,11 @@ if __name__ == "__main__":
     model.add(Dense(nodes=10, input_dim=x.shape[0], weight_initialization="fixed"))
 
     anal_time = time.time()
-    model.fit(x, y, X_val=x_val, Y_val=y_val,
+    model.fit(x, y,
               batch_size=10000, epochs=1, lr=0, # 0 lr will not change weights
               momentum=0, l2_reg=reg)
     analytical_grad = model.layers[0].gradient
-    print(analytical_grad.shape)
     anal_time = anal_time - time.time()
-
-    print("ok")
 
     # Get Numerical gradient
     num_time = time.time()

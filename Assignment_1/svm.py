@@ -38,10 +38,10 @@ if __name__ == "__main__":
 
     best_model = model.fit(X=x_train, Y=y_train, X_val=x_val, Y_val=y_val,
                         batch_size=20, epochs=100, lr=0.001, # 0 lr will not change weights
-                        momentum=0.5, l2_reg=0.05, save_path="models/svm/test_1")
+                        momentum=0.5, l2_reg=0.05, save_path="models/svm/test_2")
     best_model.plot_training_progress(show=False,
                                 save=True,
-                                name="figures/svm/test_1",
+                                name="figures/svm/test_2",
                                 subtitle="subtitle")
     test_acc = best_model.get_classification_metrics(x_test, y_test)[0]
     val_acc = best_model.get_classification_metrics(x_val, y_val)[0]
