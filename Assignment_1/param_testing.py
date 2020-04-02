@@ -2,16 +2,18 @@
 import sys, pathlib
 sys.path.append(str(pathlib.Path(__file__).resolve().parents[1]) + "/Toy-DeepLearning-Framework/")
 
-from mlp.utils import getXY, LoadBatch, prob_to_class
-from mlp.layers import Activation, Dense
-from mlp.models import Sequential
-from mpo.metaparamoptimizer import MetaParamOptimizer
-from util.misc import dict_to_string
-
 import numpy as np
 import matplotlib.pyplot as plt
 
-np.random.seed(1)
+from mlp.layers import Dense, Softmax, Relu
+from mlp.losses import CrossEntropy
+from mlp.models import Sequential
+from mlp.metrics import accuracy
+from mlp.utils import LoadXY, prob_to_class
+from mpo.metaparamoptimizer import MetaParamOptimizer
+from util.misc import dict_to_string
+
+np.random.seed(0)
 
 def montage(W, title, path=None):
     """ Display the image for each label in W """
@@ -36,10 +38,9 @@ def montage(W, title, path=None):
 # Define evaluator (function to run in MetaParamOptimizer)
 def evaluator(x_train, y_train, x_val, y_val, x_test, y_test, experiment_path="", **kwargs):
     # Define model
-    model = Sequential(loss="cross_entropy")
-    model.add(
-        Dense(nodes=10, input_dim=x_train.shape[0], weight_initialization="fixed"))
-    model.add(Activation("softmax"))
+    model = Sequential(loss=CrossEntropy())
+    model.add(Dense(nodes=10, input_dim=x_train.shape[0]))
+    model.add(Softmax())
 
     # Fit model
     model.fit(X=x_train, Y=y_train, X_val=x_val, Y_val=y_val, **kwargs)
@@ -52,7 +53,7 @@ def evaluator(x_train, y_train, x_val, y_val, x_test, y_test, experiment_path=""
     model.save(experiment_path + "/" + dict_to_string(kwargs))
     montage(W=np.array(model.layers[0].weights[:, :-1]),
             title=subtitle,
-            path="figures/param_testing/" + dict_to_string(kwargs) + "_weights")
+            path="figures/param_testing/weights/" + dict_to_string(kwargs) + "_weights")
 
     # Minimizing value: validation accuracy
     val_acc = model.get_classification_metrics(x_val, y_val)[0] # Get accuracy
@@ -64,9 +65,9 @@ if __name__ == "__main__":
     # Put it in a Data folder
 
     # Load data
-    x_train, y_train = getXY(LoadBatch("data_batch_1"))
-    x_val, y_val = getXY(LoadBatch("data_batch_2"))
-    x_test, y_test = getXY(LoadBatch("test_batch"))
+    x_train, y_train = LoadXY("data_batch_1")
+    x_val, y_val = LoadXY("data_batch_2")
+    x_test, y_test = LoadXY("test_batch")
 
     # Preprocessing
     mean_x = np.mean(x_train)
@@ -94,6 +95,7 @@ if __name__ == "__main__":
         "batch_size": 100,
         "epochs" : 40,
         "momentum" : 0.,
+        "shuffle_minibatch" : False,
     }
     # NOTE: The union of both dictionaries should contain all evaluator parameters
 
@@ -102,16 +104,6 @@ if __name__ == "__main__":
     best_model = mpo.list_search(evaluator=evaluator,
                                 dicts_list=dicts_list,
                                 fixed_args=fixed_args)
-
-    model = Sequential(loss="cross_entropy")
-    model.add(
-        Dense(nodes=10, input_dim=x_train.shape[0], weight_initialization="fixed"))
-    model.add(Activation("softmax"))
-    # model.fit(X=x_train, Y=y_train, X_val=x_val, Y_val=y_val,
-    #         batch_size=500, epochs=2, lr=0.001, # 0 lr will not change weights
-    #         momentum=0, l2_reg=0.1)
-    # montage(W=np.array(model.layers[0].weights[:, :-1]), title="bla bla")
-
     # Test model
     test_acc, test_loss = best_model["model"].get_classification_metrics(x_test, y_test)
     print("Test accuracy:", test_acc)

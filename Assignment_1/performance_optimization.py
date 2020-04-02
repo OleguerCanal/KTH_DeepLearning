@@ -2,16 +2,18 @@
 import sys, pathlib
 sys.path.append(str(pathlib.Path(__file__).resolve().parents[1]) + "/Toy-DeepLearning-Framework/")
 
-from mlp.utils import getXY, LoadBatch, prob_to_class
-from mlp.layers import Activation, Dense
-from mlp.models import Sequential
-from mpo.metaparamoptimizer import MetaParamOptimizer
-from util.misc import dict_to_string
-
 import numpy as np
 import matplotlib.pyplot as plt
 
-np.random.seed(1)
+from mlp.layers import Dense, Softmax, Relu
+from mlp.losses import CrossEntropy
+from mlp.models import Sequential
+from mlp.metrics import accuracy
+from mlp.utils import LoadXY, prob_to_class
+from mpo.metaparamoptimizer import MetaParamOptimizer
+from util.misc import dict_to_string
+
+np.random.seed(0)
 
 def montage(W, title, path=None):
     """ Display the image for each label in W """
@@ -36,10 +38,9 @@ def montage(W, title, path=None):
 # Define evaluator (function to run in MetaParamOptimizer)
 def evaluator(x_train, y_train, x_val, y_val, x_test, y_test, experiment_name="", init="fixed", **kwargs):
     # Define model
-    model = Sequential(loss="cross_entropy")
-    model.add(
-        Dense(nodes=10, input_dim=x_train.shape[0], weight_initialization=init))
-    model.add(Activation("softmax"))
+    model = Sequential(loss=CrossEntropy())
+    model.add(Dense(nodes=10, input_dim=x_train.shape[0]))
+    model.add(Softmax())
 
     # Fit model
     model_save_path = "models/" + experiment_name + "/" + dict_to_string(kwargs) + "_" + init
@@ -65,16 +66,16 @@ def evaluator(x_train, y_train, x_val, y_val, x_test, y_test, experiment_name=""
 
 if __name__ == "__main__":
     # Load data
-    x_train, y_train = getXY(LoadBatch("data_batch_1"))
+    x_train, y_train = LoadXY("data_batch_1")
     for i in [2, 3, 4, 5]:
-        x, y = getXY(LoadBatch("data_batch_" + str(i)))
+        x, y = LoadXY("data_batch_" + str(i))
         x_train = np.concatenate((x_train, x), axis=1)
         y_train = np.concatenate((y_train, y), axis=1)
     x_val = x_train[:, -1000:]
     y_val = y_train[:, -1000:]
     x_train = x_train[:, :-1000]
     y_train = y_train[:, :-1000]
-    x_test, y_test = getXY(LoadBatch("test_batch"))
+    x_test, y_test = LoadXY("test_batch")
 
     # Preprocessing
     mean_x = np.mean(x_train)
@@ -87,7 +88,7 @@ if __name__ == "__main__":
         "batch_size": [20, 100, 400],     # Batch sizes
         "lr": [0.0001, 0.001, 0.01],      # Learning rates
         "l2_reg": [0.01, 0.05, 0.1],      # L2 Regularization terms
-        "init": ["fixed", "xavier"]       # Weight initialization
+        "init": ["normal", "xavier"]      # Weight initialization
     }
     # Define fixed params (constant through optimization)
     fixed_args = {
