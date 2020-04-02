@@ -65,16 +65,16 @@ def evaluator(x_train, y_train, x_val, y_val, x_test, y_test, experiment_name=""
 
 if __name__ == "__main__":
     # Load data
-    x_train, y_train = getXY(LoadBatch("data_batch_1"))
+    x_train, y_train = LoadXY("data_batch_1")
     for i in [2, 3, 4, 5]:
-        x, y = getXY(LoadBatch("data_batch_" + str(i)))
+        x, y = LoadXY("data_batch_" + str(i))
         x_train = np.concatenate((x_train, x), axis=1)
         y_train = np.concatenate((y_train, y), axis=1)
     x_val = x_train[:, -1000:]
     y_val = y_train[:, -1000:]
     x_train = x_train[:, :-1000]
     y_train = y_train[:, :-1000]
-    x_test, y_test = getXY(LoadBatch("test_batch"))
+    x_test, y_test = LoadXY("test_batch")
 
     # Preprocessing
     mean_x = np.mean(x_train)
@@ -99,7 +99,7 @@ if __name__ == "__main__":
         "x_test" : x_test,
         "y_test" : y_test,
         "epochs" : 120,
-        "init": "fixed"
+        "init": "normal"
     }
     # NOTE: The union of both dictionaries should contain all evaluator parameters
 
