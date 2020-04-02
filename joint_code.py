@@ -1,20 +1,27 @@
-The file /home/oleguer/Documents/p4/deepstuff/KTH_DeepLearning/join_code.py contains:
+#####################################################
+# The file /home/oleguer/Documents/p4/deepstuff/KTH_DeepLearning/joint_code.py contains:
+ #####################################################
+
 from glob import glob
 import os
 
 files = [f for f in glob('/home/oleguer/Documents/p4/deepstuff/KTH_DeepLearning/**', recursive=True) if os.path.isfile(f)]
 files = [f for f in files if ".py" in f and ".pyc" not in f and "/examples/" not in f]
 
-with open("joint_code.txt", 'wb') as list_file:
+with open("joint_code.py", 'wb') as list_file:
     for file in files:
         with open(file, 'rb') as f:
             f_content = f.read()
-            list_file.write(('The file %s contains:\n' % file).encode('utf-8'))
+            list_file.write(("#####################################################\n").encode('utf-8'))
+            list_file.write(('# The file %s contains:\n ' % file).encode('utf-8'))
+            list_file.write(("#####################################################\n").encode('utf-8'))
             list_file.write(f_content)
             list_file.write(b'\n')
             list_file.write(b'\n')
 
-The file /home/oleguer/Documents/p4/deepstuff/KTH_DeepLearning/Toy-DeepLearning-Framework/mpo/metaparamoptimizer.py contains:
+#####################################################
+# The file /home/oleguer/Documents/p4/deepstuff/KTH_DeepLearning/Toy-DeepLearning-Framework/mpo/metaparamoptimizer.py contains:
+ #####################################################
 import sys, pathlib
 sys.path.append(str(pathlib.Path(__file__).resolve().parents[1]))
 
@@ -94,7 +101,9 @@ class MetaParamOptimizer:
             dictionaries.append(dictionary)
         return dictionaries
 
-The file /home/oleguer/Documents/p4/deepstuff/KTH_DeepLearning/Toy-DeepLearning-Framework/mlp/layers.py contains:
+#####################################################
+# The file /home/oleguer/Documents/p4/deepstuff/KTH_DeepLearning/Toy-DeepLearning-Framework/mlp/layers.py contains:
+ #####################################################
 import numpy as np
 import matplotlib
 import time
@@ -199,7 +208,9 @@ if __name__ == "__main__":
     pass
 
 
-The file /home/oleguer/Documents/p4/deepstuff/KTH_DeepLearning/Toy-DeepLearning-Framework/mlp/models.py contains:
+#####################################################
+# The file /home/oleguer/Documents/p4/deepstuff/KTH_DeepLearning/Toy-DeepLearning-Framework/mlp/models.py contains:
+ #####################################################
 import numpy as np
 import matplotlib
 import time
@@ -421,7 +432,9 @@ class Sequential:
         return (wrong_class_activations - neg_wca)/float(Y_pred.shape[1])
 
 
-The file /home/oleguer/Documents/p4/deepstuff/KTH_DeepLearning/Toy-DeepLearning-Framework/mlp/utils.py contains:
+#####################################################
+# The file /home/oleguer/Documents/p4/deepstuff/KTH_DeepLearning/Toy-DeepLearning-Framework/mlp/utils.py contains:
+ #####################################################
 import matplotlib.pyplot as plt
 import numpy as np
 import cv2
@@ -471,7 +484,9 @@ def minibatch_split(X, Y, batch_size):
 			Y_minibatch = Y[:, indx[i:]]
 		yield X_minibatch, Y_minibatch
 
-The file /home/oleguer/Documents/p4/deepstuff/KTH_DeepLearning/Toy-DeepLearning-Framework/util/misc.py contains:
+#####################################################
+# The file /home/oleguer/Documents/p4/deepstuff/KTH_DeepLearning/Toy-DeepLearning-Framework/util/misc.py contains:
+ #####################################################
 
 def dict_to_string(dictionary):
     s = str(dictionary)
@@ -504,7 +519,9 @@ if __name__ == "__main__":
 
 
 
-The file /home/oleguer/Documents/p4/deepstuff/KTH_DeepLearning/Assignment_1/check_gradients_svm.py contains:
+#####################################################
+# The file /home/oleguer/Documents/p4/deepstuff/KTH_DeepLearning/Assignment_1/check_gradients_svm.py contains:
+ #####################################################
 # Add path to Toy-DeepLearning-Framework
 import sys, pathlib
 sys.path.append(str(pathlib.Path(__file__).resolve().parents[1]) + "/Toy-DeepLearning-Framework/")
@@ -599,7 +616,9 @@ if __name__ == "__main__":
 
 
 
-The file /home/oleguer/Documents/p4/deepstuff/KTH_DeepLearning/Assignment_1/param_testing.py contains:
+#####################################################
+# The file /home/oleguer/Documents/p4/deepstuff/KTH_DeepLearning/Assignment_1/param_testing.py contains:
+ #####################################################
 # Add path to Toy-DeepLearning-Framework
 import sys, pathlib
 sys.path.append(str(pathlib.Path(__file__).resolve().parents[1]) + "/Toy-DeepLearning-Framework/")
@@ -719,7 +738,9 @@ if __name__ == "__main__":
     print("Test accuracy:", test_acc)
 
 
-The file /home/oleguer/Documents/p4/deepstuff/KTH_DeepLearning/Assignment_1/check_gradients.py contains:
+#####################################################
+# The file /home/oleguer/Documents/p4/deepstuff/KTH_DeepLearning/Assignment_1/check_gradients.py contains:
+ #####################################################
 # Add path to Toy-DeepLearning-Framework
 import sys, pathlib
 sys.path.append(str(pathlib.Path(__file__).resolve().parents[1]) + "/Toy-DeepLearning-Framework/")
@@ -810,7 +831,9 @@ if __name__ == "__main__":
 
 
 
-The file /home/oleguer/Documents/p4/deepstuff/KTH_DeepLearning/Assignment_1/svm.py contains:
+#####################################################
+# The file /home/oleguer/Documents/p4/deepstuff/KTH_DeepLearning/Assignment_1/svm.py contains:
+ #####################################################
 import sys, pathlib
 sys.path.append(str(pathlib.Path(__file__).resolve().parents[1]) + "/Toy-DeepLearning-Framework/")
 
@@ -861,7 +884,9 @@ if __name__ == "__main__":
     print("test_acc:", test_acc)
     print("val_acc:", val_acc)
 
-The file /home/oleguer/Documents/p4/deepstuff/KTH_DeepLearning/Assignment_1/performance_optimization_svm.py contains:
+#####################################################
+# The file /home/oleguer/Documents/p4/deepstuff/KTH_DeepLearning/Assignment_1/performance_optimization_svm.py contains:
+ #####################################################
 # Add path to Toy-DeepLearning-Framework
 import sys, pathlib
 sys.path.append(str(pathlib.Path(__file__).resolve().parents[1]) + "/Toy-DeepLearning-Framework/")
@@ -994,7 +1019,9 @@ if __name__ == "__main__":
     print("Test accuracy:", test_acc)
 
 
-The file /home/oleguer/Documents/p4/deepstuff/KTH_DeepLearning/Assignment_1/performance_optimization.py contains:
+#####################################################
+# The file /home/oleguer/Documents/p4/deepstuff/KTH_DeepLearning/Assignment_1/performance_optimization.py contains:
+ #####################################################
 # Add path to Toy-DeepLearning-Framework
 import sys, pathlib
 sys.path.append(str(pathlib.Path(__file__).resolve().parents[1]) + "/Toy-DeepLearning-Framework/")
