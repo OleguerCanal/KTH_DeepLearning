@@ -2,16 +2,18 @@
 import sys, pathlib
 sys.path.append(str(pathlib.Path(__file__).resolve().parents[1]) + "/Toy-DeepLearning-Framework/")
 
-from mlp.utils import getXY, LoadBatch, prob_to_class
-from mlp.layers import Activation, Dense
-from mlp.models import Sequential
-from mpo.metaparamoptimizer import MetaParamOptimizer
-from util.misc import dict_to_string
-
 import numpy as np
 import matplotlib.pyplot as plt
 
-np.random.seed(1)
+from mlp.layers import Dense, Softmax, Relu
+from mlp.losses import CategoricalHinge
+from mlp.models import Sequential
+from mlp.metrics import accuracy
+from mlp.utils import LoadXY, prob_to_class
+from mpo.metaparamoptimizer import MetaParamOptimizer
+from util.misc import dict_to_string
+
+np.random.seed(0)
 
 def montage(W, title, path=None):
     """ Display the image for each label in W """
@@ -36,8 +38,8 @@ def montage(W, title, path=None):
 # Define evaluator (function to run in MetaParamOptimizer)
 def evaluator(x_train, y_train, x_val, y_val, x_test, y_test, experiment_name="", init="fixed", **kwargs):
     # Define model
-    model = Sequential(loss="categorical_hinge")
-    model.add(Dense(nodes=10, input_dim=x.shape[0], weight_initialization="fixed"))
+    model = Sequential(loss=CategoricalHinge())
+    model.add(Dense(nodes=10, input_dim=x_train.shape[0]))
 
     # Fit model
     model_save_path = "models/" + experiment_name + "/" + dict_to_string(kwargs) + "_" + init
