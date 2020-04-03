@@ -98,8 +98,8 @@ if __name__ == "__main__":
         "y_val" : y_val,
         "x_test" : x_test,
         "y_test" : y_test,
-        "epochs" : 120,
-        "init": "normal"
+        "epochs" : 100,
+        "weight_initialization": "normal"
     }
     # NOTE: The union of both dictionaries should contain all evaluator parameters
 
