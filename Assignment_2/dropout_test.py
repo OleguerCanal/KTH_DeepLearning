@@ -3,7 +3,7 @@ sys.path.append(str(pathlib.Path(__file__).resolve().parents[1]) + "/Toy-DeepLea
 
 import numpy as np
 from mlp.callbacks import MetricTracker, BestModelSaver, LearningRateScheduler
-from mlp.layers import Dense, Softmax, Relu
+from mlp.layers import Dense, Softmax, Relu, Dropout
 from mlp.losses import CrossEntropy
 from mlp.models import Sequential
 from mlp.metrics import Accuracy
@@ -26,28 +26,29 @@ if __name__ == "__main__":
 
     # Define model
     model = Sequential(loss=CrossEntropy(), metric=Accuracy())
-    model.add(Dense(nodes=50, input_dim=x_train.shape[0]))
+    model.add(Dense(nodes=100, input_dim=x_train.shape[0]))
     model.add(Relu())
-    model.add(Dense(nodes=10, input_dim=50))
+    model.add(Dropout(ones_ratio=0.85))
+    model.add(Dense(nodes=10, input_dim=100))
     model.add(Softmax())
 
-    ns = 500
+    ns = 800
 
     # Define callbacks
     mt = MetricTracker()  # Stores training evolution info
-    bms = BestModelSaver(save_dir=None)  # Saves model with highest val_metric
-    lrs = LearningRateScheduler(evolution="cyclic", lr_min=1e-5, lr_max=1e-1, ns=ns)  # Modifies lr while training
-    callbacks = [mt, bms, lrs]
+    # bms = BestModelSaver(save_dir=None)  # Saves model with highest val_metric
+    lrs = LearningRateScheduler(evolution="cyclic", lr_min=1e-3, lr_max=1e-1, ns=ns)  # Modifies lr while training
+    # callbacks = [mt, bms, lrs]
+    callbacks = [mt, lrs]
 
     # Fit model
-    iterations = 2*ns
+    iterations = 4*ns
     model.fit(X=x_train, Y=y_train, X_val=x_val, Y_val=y_val,
-                        batch_size=100, epochs=None, iterations=iterations, lr=0.01, momentum=0.0,
-                        l2_reg=0.01, shuffle_minibatch=False,
+                        batch_size=100, epochs=None, iterations=iterations, lr=0.001, momentum=0.9,
+                        l2_reg=0.1, shuffle_minibatch=True,
                         callbacks=callbacks)
-    model.save("models/mlp_overfit_test")
-    mt.plot_training_progress(show=False, save=True, name="figures/mlp_cyclic_test")
-    mt.plot_lr_evolution(show=False, save=True, name="figures/lr_cyclic_test")
+    # model.save("models/mlp_overfit_test")
+    mt.plot_training_progress(show=True, save=False, name="figures/dropout_test")
     
     # Test model
     # best_model = bms.get_best_model()

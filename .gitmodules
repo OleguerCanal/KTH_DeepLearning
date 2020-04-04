@@ -1,3 +1,6 @@
 [submodule "Toy-DeepLearning-Framework"]
 	path = Toy-DeepLearning-Framework
 	url = git@github.com:OleguerCanal/Toy-DeepLearning-Framework.git
+[submodule "HyperParameter-Optimizer"]
+	path = HyperParameter-Optimizer
+	url = https://github.com/CampusAI/HyperParameter-Optimizer.git
