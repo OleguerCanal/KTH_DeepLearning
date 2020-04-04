@@ -46,8 +46,8 @@ def evaluator(x_train, y_train, x_val, y_val, x_test, y_test, experiment_name=""
 
     # Fit model
     model.fit(X=x_train, Y=y_train, X_val=x_val, Y_val=y_val,
-              batch_size=batch_size, epochs=None, iterations=iterations, **kwargs,
-              callbacks=callbacks)
+              batch_size=batch_size, epochs=None, iterations=iterations,
+              callbacks=callbacks, **kwargs)
 
     # Write results    
     # best_model = bms.get_best_model()
@@ -99,7 +99,7 @@ if __name__ == "__main__":
     cycles_length = Integer(name='ns', low=400, high=1200)
     number_of_cycles = Integer(name="number_of_cycles", low=2, high=6)
     hidden_units = Integer(name="hidden_units", low=50, high=200)
-    momentum = Real(name="momentum", low=0.5, high=0.9)
+    momentum = Real(name="momentum", low=0.2, high=0.95)
     search_space = [l2reg_space, cycles_length, number_of_cycles, hidden_units, momentum]
 
     gp_search = GaussianProcessSearch(search_space=search_space,
@@ -108,8 +108,8 @@ if __name__ == "__main__":
                                       input_file=None,
                                       output_file=fixed_args["experiment_name"] + '/evaluations.csv')
     gp_search.init_session()
-    x, y = gp_search.get_maximum(n_calls=15,
-                                 n_random_starts=7,
+    x, y = gp_search.get_maximum(n_calls=80,
+                                 n_random_starts=10,
                                  noise=0.001,
                                  verbose=True)
     print("Max at:", x, "with value:", y)

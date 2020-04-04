@@ -132,3 +132,4 @@ dmypy.json
 data/
 models/
 my-directory-list.txt
+gpro_results/
