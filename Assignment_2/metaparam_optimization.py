@@ -4,6 +4,7 @@ import pathlib
 sys.path.append(str(pathlib.Path(__file__).resolve().parents[1]) + "/Toy-DeepLearning-Framework/")
 sys.path.append(str(pathlib.Path(__file__).resolve().parents[1]) + "/HyperParameter-Optimizer/")
 
+from decimal import Decimal
 from skopt.space import Real, Integer, Categorical
 from mlp.utils import LoadXY
 from mlp.metrics import Accuracy
@@ -50,9 +51,18 @@ def evaluator(x_train, y_train, x_val, y_val, x_test, y_test, experiment_name=""
               callbacks=callbacks, **kwargs)
 
     # Write results    
-    # best_model = bms.get_best_model()
-    test_acc = model.get_metric_loss(x_test, y_test)[0]
-    subtitle = "l2_reg: " + str(kwargs["l2_reg"]) + ", Test Acc: " + str(test_acc)
+    best_model = bms.get_best_model()
+    test_acc = best_model.get_metric_loss(x_test, y_test)[0]
+    
+    l2_str = str("{:.2E}".format(Decimal(kwargs["l2_reg"])))
+    ns_str = str(ns)
+    nc_str = str(kwargs["number_of_cycles"])
+    h_units_str = str(kwargs["hidden_units"])
+    m_str = str("{:.2E}".format(Decimal(kwargs["momentum"])))
+    test_acc_str = str("{:.2E}".format(Decimal(test_acc)))
+
+    subtitle = "l2reg:" + l2_str + ", ns:" + ns_str + ", nc:" + nc_str +\
+        ", units:" + h_units_str + ", moment:" + m_str + ", Test Acc: " + test_acc_str
     mt.plot_training_progress(show=False, save=True, name=figure_file, subtitle=subtitle)
 
     # Maximizing value: validation accuracy
@@ -109,7 +119,7 @@ if __name__ == "__main__":
                                       output_file=fixed_args["experiment_name"] + '/evaluations.csv')
     gp_search.init_session()
     x, y = gp_search.get_maximum(n_calls=80,
-                                 n_random_starts=10,
+                                 n_random_starts=20,
                                  noise=0.001,
                                  verbose=True)
     print("Max at:", x, "with value:", y)
