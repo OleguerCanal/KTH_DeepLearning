@@ -57,8 +57,8 @@ if __name__ == "__main__":
     x_val = (x_val - mean_x)/std_x
     x_test = (x_test - mean_x)/std_x
 
-    x = x_train[:, 0]
-    y = y_train[:, 0]
+    x = x_train[:, 0:20]
+    y = y_train[:, 0:20]
     reg = 0.1
 
     # Define model
@@ -76,7 +76,7 @@ if __name__ == "__main__":
 
     # Get Numerical gradient
     num_time = time.time()
-    numerical_grad = ComputeGradsNum(x, y, model, l2_reg=reg, h=0.001)
+    numerical_grad = ComputeGradsNum(x, y, model, l2_reg=reg, h=1e-5)
     num_time = num_time - time.time()
 
     _EPS = 0.0000001
