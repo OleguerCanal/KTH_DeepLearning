@@ -1,0 +1,504 @@
+Traceback (most recent call last):
+  File "metaparam_optimization.py", line 17, in <module>
+    from gaussian_process import GaussianProcessSearch
+  File "/home/oleguer/projects/KTH_DeepLearning/HyperParameter-Optimizer/gaussian_process.py", line 301
+    self.solutions.Add([res.x, res.fun)
+                                      ^
+SyntaxError: invalid syntax
+Iteration No: 1 started. Evaluating function at random point.
+{'shuffle_minibatch': True, 'l2_reg': -4.216238113219165, 'ns': 1017, 'number_of_cycles': 3, 'hidden_units': 186, 'momentum': 0.8774790010909959}
+Traceback (most recent call last):
+  File "metaparam_optimization.py", line 124, in <module>
+    verbose=True)
+  File "/home/oleguer/projects/KTH_DeepLearning/HyperParameter-Optimizer/gaussian_process.py", line 102, in get_maximum
+    verbose=verbose)
+  File "/home/oleguer/.virtualenvs/py3/lib/python3.6/site-packages/skopt/optimizer/gp.py", line 271, in gp_minimize
+    callback=callback, n_jobs=n_jobs, model_queue_size=model_queue_size)
+  File "/home/oleguer/.virtualenvs/py3/lib/python3.6/site-packages/skopt/optimizer/base.py", line 275, in base_minimize
+    if eval_callbacks(callbacks, result):
+  File "/home/oleguer/.virtualenvs/py3/lib/python3.6/site-packages/skopt/utils.py", line 98, in eval_callbacks
+    decision = c(result)
+  File "/home/oleguer/projects/KTH_DeepLearning/HyperParameter-Optimizer/gaussian_process.py", line 301, in __save_res
+    self.solutions.Add([res.x, res.fun])
+AttributeError: 'list' object has no attribute 'Add'
+Iteration No: 1 started. Evaluating function at random point.
+{'shuffle_minibatch': True, 'l2_reg': -3.0614097718462308, 'ns': 693, 'number_of_cycles': 2, 'hidden_units': 153, 'momentum': 0.31856956510472634}
+Iteration No: 1 ended. Evaluation done at random point.
+Time taken: 49.7179
+Function value obtained: -0.4900
+Current minimum: -0.4900
+Iteration No: 2 started. Evaluating function at random point.
+{'shuffle_minibatch': True, 'l2_reg': -4.344415389795762, 'ns': 637, 'number_of_cycles': 4, 'hidden_units': 81, 'momentum': 0.3734176089372392}
+Iteration No: 2 ended. Evaluation done at random point.
+Time taken: 63.4488
+Function value obtained: -0.5330
+Current minimum: -0.5330
+Iteration No: 3 started. Evaluating function at random point.
+{'shuffle_minibatch': True, 'l2_reg': -2.2436705119667164, 'ns': 1186, 'number_of_cycles': 5, 'hidden_units': 58, 'momentum': 0.6642814417996186}
+Iteration No: 3 ended. Evaluation done at random point.
+Time taken: 118.3146
+Function value obtained: -0.5300
+Current minimum: -0.5330
+Iteration No: 4 started. Evaluating function at random point.
+{'shuffle_minibatch': True, 'l2_reg': -2.06817522119882, 'ns': 757, 'number_of_cycles': 3, 'hidden_units': 127, 'momentum': 0.6527510626831681}
+Iteration No: 4 ended. Evaluation done at random point.
+Time taken: 66.3935
+Function value obtained: -0.5170
+Current minimum: -0.5330
+Iteration No: 5 started. Evaluating function at random point.
+{'shuffle_minibatch': True, 'l2_reg': -4.3482967623987605, 'ns': 485, 'number_of_cycles': 3, 'hidden_units': 88, 'momentum': 0.6976473659793937}
+Iteration No: 5 ended. Evaluation done at random point.
+Time taken: 37.1240
+Function value obtained: -0.5060
+Current minimum: -0.5330
+Iteration No: 6 started. Evaluating function at random point.
+{'shuffle_minibatch': True, 'l2_reg': -1.4781019419586938, 'ns': 801, 'number_of_cycles': 5, 'hidden_units': 190, 'momentum': 0.8748984642147271}
+Iteration No: 6 ended. Evaluation done at random point.
+Time taken: 156.1697
+Function value obtained: -0.4660
+Current minimum: -0.5330
+Iteration No: 7 started. Evaluating function at random point.
+{'shuffle_minibatch': True, 'l2_reg': -2.1832473632927285, 'ns': 523, 'number_of_cycles': 5, 'hidden_units': 63, 'momentum': 0.5701822825913978}
+Iteration No: 7 ended. Evaluation done at random point.
+Time taken: 57.0899
+Function value obtained: -0.4710
+Current minimum: -0.5330
+Iteration No: 8 started. Evaluating function at random point.
+{'shuffle_minibatch': True, 'l2_reg': -4.556729290190376, 'ns': 597, 'number_of_cycles': 5, 'hidden_units': 65, 'momentum': 0.3075586131080481}
+Iteration No: 8 ended. Evaluation done at random point.
+Time taken: 65.9827
+Function value obtained: -0.5150
+Current minimum: -0.5330
+Iteration No: 9 started. Evaluating function at random point.
+{'shuffle_minibatch': True, 'l2_reg': -3.257300323641542, 'ns': 865, 'number_of_cycles': 2, 'hidden_units': 94, 'momentum': 0.8307058692770546}
+Iteration No: 9 ended. Evaluation done at random point.
+Time taken: 46.0319
+Function value obtained: -0.5030
+Current minimum: -0.5330
+Iteration No: 10 started. Evaluating function at random point.
+{'shuffle_minibatch': True, 'l2_reg': -1.1460925020533117, 'ns': 705, 'number_of_cycles': 6, 'hidden_units': 95, 'momentum': 0.8634038073654007}
+Iteration No: 10 ended. Evaluation done at random point.
+Time taken: 107.5192
+Function value obtained: -0.4200
+Current minimum: -0.5330
+Iteration No: 11 started. Evaluating function at random point.
+{'shuffle_minibatch': True, 'l2_reg': -3.901933461078227, 'ns': 1095, 'number_of_cycles': 5, 'hidden_units': 186, 'momentum': 0.7600071722681117}
+Iteration No: 11 ended. Evaluation done at random point.
+Time taken: 202.4339
+Function value obtained: -0.5460
+Current minimum: -0.5460
+Iteration No: 12 started. Evaluating function at random point.
+{'shuffle_minibatch': True, 'l2_reg': -3.4042287087915204, 'ns': 447, 'number_of_cycles': 3, 'hidden_units': 77, 'momentum': 0.5531891552693995}
+Iteration No: 12 ended. Evaluation done at random point.
+Time taken: 33.9043
+Function value obtained: -0.4820
+Current minimum: -0.5460
+Iteration No: 13 started. Evaluating function at random point.
+{'shuffle_minibatch': True, 'l2_reg': -2.9592621285029637, 'ns': 922, 'number_of_cycles': 3, 'hidden_units': 96, 'momentum': 0.6704445177523748}
+Iteration No: 13 ended. Evaluation done at random point.
+Time taken: 72.3820
+Function value obtained: -0.5150
+Current minimum: -0.5460
+Iteration No: 14 started. Evaluating function at random point.
+{'shuffle_minibatch': True, 'l2_reg': -1.1781759780731562, 'ns': 1042, 'number_of_cycles': 2, 'hidden_units': 133, 'momentum': 0.7214116270072495}
+Iteration No: 14 ended. Evaluation done at random point.
+Time taken: 64.0695
+Function value obtained: -0.4160
+Current minimum: -0.5460
+Iteration No: 15 started. Evaluating function at random point.
+{'shuffle_minibatch': True, 'l2_reg': -4.75492194052042, 'ns': 789, 'number_of_cycles': 3, 'hidden_units': 117, 'momentum': 0.691595370770408}
+Iteration No: 15 ended. Evaluation done at random point.
+Time taken: 70.0849
+Function value obtained: -0.4990
+Current minimum: -0.5460
+Iteration No: 16 started. Evaluating function at random point.
+{'shuffle_minibatch': True, 'l2_reg': -1.9264714853112541, 'ns': 636, 'number_of_cycles': 2, 'hidden_units': 190, 'momentum': 0.694350791022242}
+Iteration No: 16 ended. Evaluation done at random point.
+Time taken: 51.1898
+Function value obtained: -0.4990
+Current minimum: -0.5460
+Iteration No: 17 started. Evaluating function at random point.
+{'shuffle_minibatch': True, 'l2_reg': -2.8143142927713023, 'ns': 492, 'number_of_cycles': 3, 'hidden_units': 100, 'momentum': 0.5647958930950485}
+Iteration No: 17 ended. Evaluation done at random point.
+Time taken: 41.1104
+Function value obtained: -0.5080
+Current minimum: -0.5460
+Iteration No: 18 started. Evaluating function at random point.
+{'shuffle_minibatch': True, 'l2_reg': -2.304441727184122, 'ns': 573, 'number_of_cycles': 3, 'hidden_units': 119, 'momentum': 0.39002580529409225}
+Iteration No: 18 ended. Evaluation done at random point.
+Time taken: 50.4388
+Function value obtained: -0.4710
+Current minimum: -0.5460
+Iteration No: 19 started. Evaluating function at random point.
+{'shuffle_minibatch': True, 'l2_reg': -3.4118716185594553, 'ns': 1030, 'number_of_cycles': 6, 'hidden_units': 98, 'momentum': 0.7479592883921244}
+Iteration No: 19 ended. Evaluation done at random point.
+Time taken: 160.4123
+Function value obtained: -0.5330
+Current minimum: -0.5460
+Iteration No: 20 started. Evaluating function at random point.
+{'shuffle_minibatch': True, 'l2_reg': -2.4609731223040283, 'ns': 1051, 'number_of_cycles': 3, 'hidden_units': 181, 'momentum': 0.27375043212230865}
+Iteration No: 20 ended. Evaluation done at random point.
+Time taken: 115.0272
+Function value obtained: -0.5510
+Current minimum: -0.5510
+Iteration No: 21 started. Searching for the next optimal point.
+{'shuffle_minibatch': True, 'l2_reg': -5.0, 'ns': 1200, 'number_of_cycles': 6, 'hidden_units': 152, 'momentum': 0.8997490430188377}
+Iteration No: 21 ended. Search finished for the next optimal point.
+Time taken: 232.4881
+Function value obtained: -0.5340
+Current minimum: -0.5510
+Iteration No: 22 started. Searching for the next optimal point.
+{'shuffle_minibatch': True, 'l2_reg': -5.0, 'ns': 1200, 'number_of_cycles': 4, 'hidden_units': 173, 'momentum': 0.206110130288903}
+Iteration No: 22 ended. Search finished for the next optimal point.
+Time taken: 171.8405
+Function value obtained: -0.5290
+Current minimum: -0.5510
+Iteration No: 23 started. Searching for the next optimal point.
+{'shuffle_minibatch': True, 'l2_reg': -3.832717806216275, 'ns': 1200, 'number_of_cycles': 5, 'hidden_units': 196, 'momentum': 0.41972671479287893}
+Iteration No: 23 ended. Search finished for the next optimal point.
+Time taken: 226.4715
+Function value obtained: -0.5570
+Current minimum: -0.5570
+Iteration No: 24 started. Searching for the next optimal point.
+{'shuffle_minibatch': True, 'l2_reg': -3.818890891699068, 'ns': 1200, 'number_of_cycles': 5, 'hidden_units': 142, 'momentum': 0.2405545864014477}
+Iteration No: 24 ended. Search finished for the next optimal point.
+Time taken: 188.2654
+Function value obtained: -0.5020
+Current minimum: -0.5570
+Iteration No: 25 started. Searching for the next optimal point.
+{'shuffle_minibatch': True, 'l2_reg': -5.0, 'ns': 1200, 'number_of_cycles': 3, 'hidden_units': 190, 'momentum': 0.6652264666938168}
+Iteration No: 25 ended. Search finished for the next optimal point.
+Time taken: 138.5706
+Function value obtained: -0.5440
+Current minimum: -0.5570
+Iteration No: 26 started. Searching for the next optimal point.
+{'shuffle_minibatch': True, 'l2_reg': -5.0, 'ns': 1200, 'number_of_cycles': 6, 'hidden_units': 83, 'momentum': 0.7608020691158268}
+Iteration No: 26 ended. Search finished for the next optimal point.
+Time taken: 167.1263
+Function value obtained: -0.5400
+Current minimum: -0.5570
+Iteration No: 27 started. Searching for the next optimal point.
+{'shuffle_minibatch': True, 'l2_reg': -5.0, 'ns': 1200, 'number_of_cycles': 4, 'hidden_units': 158, 'momentum': 0.894842254645474}
+Iteration No: 27 ended. Search finished for the next optimal point.
+Time taken: 163.5153
+Function value obtained: -0.5400
+Current minimum: -0.5570
+Iteration No: 28 started. Searching for the next optimal point.
+{'shuffle_minibatch': True, 'l2_reg': -5.0, 'ns': 1200, 'number_of_cycles': 3, 'hidden_units': 60, 'momentum': 0.4329124630692727}
+Iteration No: 28 ended. Search finished for the next optimal point.
+Time taken: 76.9011
+Function value obtained: -0.4990
+Current minimum: -0.5570
+Iteration No: 29 started. Searching for the next optimal point.
+{'shuffle_minibatch': True, 'l2_reg': -5.0, 'ns': 400, 'number_of_cycles': 5, 'hidden_units': 200, 'momentum': 0.6502561874118646}
+Iteration No: 29 ended. Search finished for the next optimal point.
+Time taken: 82.4504
+Function value obtained: -0.5120
+Current minimum: -0.5570
+Iteration No: 30 started. Searching for the next optimal point.
+{'shuffle_minibatch': True, 'l2_reg': -3.718640330329956, 'ns': 1200, 'number_of_cycles': 5, 'hidden_units': 200, 'momentum': 0.8317278927961271}
+Iteration No: 30 ended. Search finished for the next optimal point.
+Time taken: 230.7918
+Function value obtained: -0.5690
+Current minimum: -0.5690
+Iteration No: 31 started. Searching for the next optimal point.
+{'shuffle_minibatch': True, 'l2_reg': -3.4834610300619397, 'ns': 1183, 'number_of_cycles': 2, 'hidden_units': 199, 'momentum': 0.7172104231497984}
+Iteration No: 31 ended. Search finished for the next optimal point.
+Time taken: 93.9962
+Function value obtained: -0.5250
+Current minimum: -0.5690
+Iteration No: 32 started. Searching for the next optimal point.
+{'shuffle_minibatch': True, 'l2_reg': -4.086023154861462, 'ns': 1196, 'number_of_cycles': 2, 'hidden_units': 199, 'momentum': 0.887096341844724}
+Iteration No: 32 ended. Search finished for the next optimal point.
+Time taken: 98.6961
+Function value obtained: -0.5300
+Current minimum: -0.5690
+Iteration No: 33 started. Searching for the next optimal point.
+{'shuffle_minibatch': True, 'l2_reg': -3.5802000035952934, 'ns': 1198, 'number_of_cycles': 6, 'hidden_units': 52, 'momentum': 0.4765657787892533}
+Iteration No: 33 ended. Search finished for the next optimal point.
+Time taken: 143.1592
+Function value obtained: -0.5170
+Current minimum: -0.5690
+Iteration No: 34 started. Searching for the next optimal point.
+{'shuffle_minibatch': True, 'l2_reg': -4.972781946687108, 'ns': 476, 'number_of_cycles': 4, 'hidden_units': 197, 'momentum': 0.25468411446795663}
+Iteration No: 34 ended. Search finished for the next optimal point.
+Time taken: 76.2937
+Function value obtained: -0.4630
+Current minimum: -0.5690
+Iteration No: 35 started. Searching for the next optimal point.
+{'shuffle_minibatch': True, 'l2_reg': -3.182075013775455, 'ns': 1200, 'number_of_cycles': 5, 'hidden_units': 77, 'momentum': 0.3596912274932208}
+Iteration No: 35 ended. Search finished for the next optimal point.
+Time taken: 138.0224
+Function value obtained: -0.5470
+Current minimum: -0.5690
+Iteration No: 36 started. Searching for the next optimal point.
+{'shuffle_minibatch': True, 'l2_reg': -4.982581159078981, 'ns': 1194, 'number_of_cycles': 3, 'hidden_units': 186, 'momentum': 0.9396265952911962}
+Iteration No: 36 ended. Search finished for the next optimal point.
+Time taken: 135.1840
+Function value obtained: -0.5230
+Current minimum: -0.5690
+Iteration No: 37 started. Searching for the next optimal point.
+{'shuffle_minibatch': True, 'l2_reg': -3.0722051106449877, 'ns': 1200, 'number_of_cycles': 4, 'hidden_units': 72, 'momentum': 0.9293124340445684}
+Iteration No: 37 ended. Search finished for the next optimal point.
+Time taken: 105.5342
+Function value obtained: -0.5130
+Current minimum: -0.5690
+Iteration No: 38 started. Searching for the next optimal point.
+{'shuffle_minibatch': True, 'l2_reg': -3.9782108393066764, 'ns': 1199, 'number_of_cycles': 2, 'hidden_units': 71, 'momentum': 0.9318022724285073}
+Iteration No: 38 ended. Search finished for the next optimal point.
+Time taken: 57.2582
+Function value obtained: -0.5050
+Current minimum: -0.5690
+Iteration No: 39 started. Searching for the next optimal point.
+{'shuffle_minibatch': True, 'l2_reg': -4.979054332216617, 'ns': 1198, 'number_of_cycles': 6, 'hidden_units': 185, 'momentum': 0.26363823355333615}
+Iteration No: 39 ended. Search finished for the next optimal point.
+Time taken: 262.2114
+Function value obtained: -0.5410
+Current minimum: -0.5690
+Iteration No: 40 started. Searching for the next optimal point.
+{'shuffle_minibatch': True, 'l2_reg': -4.998788216953013, 'ns': 1199, 'number_of_cycles': 4, 'hidden_units': 108, 'momentum': 0.6881382376823955}
+Iteration No: 40 ended. Search finished for the next optimal point.
+Time taken: 130.5009
+Function value obtained: -0.5380
+Current minimum: -0.5690
+Iteration No: 41 started. Searching for the next optimal point.
+{'shuffle_minibatch': True, 'l2_reg': -4.985275084952945, 'ns': 406, 'number_of_cycles': 3, 'hidden_units': 92, 'momentum': 0.4748271410799428}
+Iteration No: 41 ended. Search finished for the next optimal point.
+Time taken: 33.3440
+Function value obtained: -0.4900
+Current minimum: -0.5690
+Iteration No: 42 started. Searching for the next optimal point.
+{'shuffle_minibatch': True, 'l2_reg': -4.9855000844046, 'ns': 1192, 'number_of_cycles': 5, 'hidden_units': 53, 'momentum': 0.2858409762076173}
+Iteration No: 42 ended. Search finished for the next optimal point.
+Time taken: 120.9854
+Function value obtained: -0.5140
+Current minimum: -0.5690
+Iteration No: 43 started. Searching for the next optimal point.
+{'shuffle_minibatch': True, 'l2_reg': -3.5870465687606012, 'ns': 1196, 'number_of_cycles': 4, 'hidden_units': 198, 'momentum': 0.20828449484978268}
+Iteration No: 43 ended. Search finished for the next optimal point.
+Time taken: 183.0896
+Function value obtained: -0.5530
+Current minimum: -0.5690
+Iteration No: 44 started. Searching for the next optimal point.
+{'shuffle_minibatch': True, 'l2_reg': -3.365349045714129, 'ns': 1189, 'number_of_cycles': 3, 'hidden_units': 198, 'momentum': 0.2909824486012754}
+Iteration No: 44 ended. Search finished for the next optimal point.
+Time taken: 140.6094
+Function value obtained: -0.5110
+Current minimum: -0.5690
+Iteration No: 45 started. Searching for the next optimal point.
+{'shuffle_minibatch': True, 'l2_reg': -3.212341968607621, 'ns': 1196, 'number_of_cycles': 6, 'hidden_units': 197, 'momentum': 0.6849047677960587}
+Iteration No: 45 ended. Search finished for the next optimal point.
+Time taken: 275.5977
+Function value obtained: -0.5560
+Current minimum: -0.5690
+Iteration No: 46 started. Searching for the next optimal point.
+{'shuffle_minibatch': True, 'l2_reg': -2.842939828262097, 'ns': 1194, 'number_of_cycles': 6, 'hidden_units': 191, 'momentum': 0.3699526439447608}
+Iteration No: 46 ended. Search finished for the next optimal point.
+Time taken: 263.8721
+Function value obtained: -0.5540
+Current minimum: -0.5690
+Iteration No: 47 started. Searching for the next optimal point.
+{'shuffle_minibatch': True, 'l2_reg': -3.7175665625768604, 'ns': 1188, 'number_of_cycles': 6, 'hidden_units': 196, 'momentum': 0.7726848979299727}
+Iteration No: 47 ended. Search finished for the next optimal point.
+Time taken: 263.8866
+Function value obtained: -0.5460
+Current minimum: -0.5690
+Iteration No: 48 started. Searching for the next optimal point.
+{'shuffle_minibatch': True, 'l2_reg': -3.7203759586676615, 'ns': 1199, 'number_of_cycles': 6, 'hidden_units': 194, 'momentum': 0.609080726475075}
+Iteration No: 48 ended. Search finished for the next optimal point.
+Time taken: 267.5356
+Function value obtained: -0.5530
+Current minimum: -0.5690
+Iteration No: 49 started. Searching for the next optimal point.
+{'shuffle_minibatch': True, 'l2_reg': -4.296082972642796, 'ns': 1191, 'number_of_cycles': 6, 'hidden_units': 190, 'momentum': 0.8767936037139294}
+Iteration No: 49 ended. Search finished for the next optimal point.
+Time taken: 266.9238
+Function value obtained: -0.5370
+Current minimum: -0.5690
+Iteration No: 50 started. Searching for the next optimal point.
+{'shuffle_minibatch': True, 'l2_reg': -2.8185055350966257, 'ns': 1177, 'number_of_cycles': 6, 'hidden_units': 199, 'momentum': 0.7588907754061491}
+Iteration No: 50 ended. Search finished for the next optimal point.
+Time taken: 274.3318
+Function value obtained: -0.5690
+Current minimum: -0.5690
+Iteration No: 51 started. Searching for the next optimal point.
+{'shuffle_minibatch': True, 'l2_reg': -2.87546406104504, 'ns': 1189, 'number_of_cycles': 6, 'hidden_units': 192, 'momentum': 0.7615743240432897}
+Iteration No: 51 ended. Search finished for the next optimal point.
+Time taken: 263.5780
+Function value obtained: -0.5540
+Current minimum: -0.5690
+Iteration No: 52 started. Searching for the next optimal point.
+{'shuffle_minibatch': True, 'l2_reg': -2.9237777814896004, 'ns': 1163, 'number_of_cycles': 6, 'hidden_units': 196, 'momentum': 0.5868119476931233}
+Iteration No: 52 ended. Search finished for the next optimal point.
+Time taken: 260.5002
+Function value obtained: -0.5760
+Current minimum: -0.5760
+Iteration No: 53 started. Searching for the next optimal point.
+{'shuffle_minibatch': True, 'l2_reg': -3.319125602390726, 'ns': 429, 'number_of_cycles': 6, 'hidden_units': 198, 'momentum': 0.7922775650348353}
+Iteration No: 53 ended. Search finished for the next optimal point.
+Time taken: 101.7632
+Function value obtained: -0.5360
+Current minimum: -0.5760
+Iteration No: 54 started. Searching for the next optimal point.
+{'shuffle_minibatch': True, 'l2_reg': -2.8297916261286367, 'ns': 1169, 'number_of_cycles': 6, 'hidden_units': 195, 'momentum': 0.5189834179360024}
+Iteration No: 54 ended. Search finished for the next optimal point.
+Time taken: 266.2261
+Function value obtained: -0.5540
+Current minimum: -0.5760
+Iteration No: 55 started. Searching for the next optimal point.
+{'shuffle_minibatch': True, 'l2_reg': -3.14914796046835, 'ns': 1170, 'number_of_cycles': 6, 'hidden_units': 196, 'momentum': 0.8310775989122388}
+Iteration No: 55 ended. Search finished for the next optimal point.
+Time taken: 263.2640
+Function value obtained: -0.5650
+Current minimum: -0.5760
+Iteration No: 56 started. Searching for the next optimal point.
+{'shuffle_minibatch': True, 'l2_reg': -2.80782345893072, 'ns': 1161, 'number_of_cycles': 6, 'hidden_units': 197, 'momentum': 0.8101213864670223}
+Iteration No: 56 ended. Search finished for the next optimal point.
+Time taken: 267.5836
+Function value obtained: -0.5580
+Current minimum: -0.5760
+Iteration No: 57 started. Searching for the next optimal point.
+{'shuffle_minibatch': True, 'l2_reg': -2.4747289672842174, 'ns': 1199, 'number_of_cycles': 6, 'hidden_units': 200, 'momentum': 0.41772892306946285}
+Iteration No: 57 ended. Search finished for the next optimal point.
+Time taken: 273.1393
+Function value obtained: -0.5570
+Current minimum: -0.5760
+Iteration No: 58 started. Searching for the next optimal point.
+{'shuffle_minibatch': True, 'l2_reg': -3.4743996579454843, 'ns': 468, 'number_of_cycles': 6, 'hidden_units': 200, 'momentum': 0.42059290047009246}
+Iteration No: 58 ended. Search finished for the next optimal point.
+Time taken: 108.3608
+Function value obtained: -0.4990
+Current minimum: -0.5760
+Iteration No: 59 started. Searching for the next optimal point.
+{'shuffle_minibatch': True, 'l2_reg': -3.906495695427119, 'ns': 1194, 'number_of_cycles': 6, 'hidden_units': 199, 'momentum': 0.659747919611607}
+Iteration No: 59 ended. Search finished for the next optimal point.
+Time taken: 275.3647
+Function value obtained: -0.5630
+Current minimum: -0.5760
+Iteration No: 60 started. Searching for the next optimal point.
+{'shuffle_minibatch': True, 'l2_reg': -2.4145336238528343, 'ns': 1198, 'number_of_cycles': 6, 'hidden_units': 199, 'momentum': 0.5861898767909273}
+Iteration No: 60 ended. Search finished for the next optimal point.
+Time taken: 268.8863
+Function value obtained: -0.5560
+Current minimum: -0.5760
+Iteration No: 61 started. Searching for the next optimal point.
+{'shuffle_minibatch': True, 'l2_reg': -2.9414411698686016, 'ns': 1185, 'number_of_cycles': 6, 'hidden_units': 191, 'momentum': 0.8783591580413674}
+Iteration No: 61 ended. Search finished for the next optimal point.
+Time taken: 261.6325
+Function value obtained: -0.5550
+Current minimum: -0.5760
+Iteration No: 62 started. Searching for the next optimal point.
+{'shuffle_minibatch': True, 'l2_reg': -4.33904345395037, 'ns': 1176, 'number_of_cycles': 6, 'hidden_units': 200, 'momentum': 0.3072083273371864}
+Iteration No: 62 ended. Search finished for the next optimal point.
+Time taken: 269.5969
+Function value obtained: -0.5370
+Current minimum: -0.5760
+Iteration No: 63 started. Searching for the next optimal point.
+{'shuffle_minibatch': True, 'l2_reg': -4.948921044768615, 'ns': 1194, 'number_of_cycles': 6, 'hidden_units': 196, 'momentum': 0.4513940321625403}
+Iteration No: 63 ended. Search finished for the next optimal point.
+Time taken: 269.9884
+Function value obtained: -0.5520
+Current minimum: -0.5760
+Iteration No: 64 started. Searching for the next optimal point.
+{'shuffle_minibatch': True, 'l2_reg': -2.294408648498343, 'ns': 1186, 'number_of_cycles': 6, 'hidden_units': 196, 'momentum': 0.8554366189600764}
+Iteration No: 64 ended. Search finished for the next optimal point.
+Time taken: 268.1891
+Function value obtained: -0.5520
+Current minimum: -0.5760
+Iteration No: 65 started. Searching for the next optimal point.
+{'shuffle_minibatch': True, 'l2_reg': -2.8364361135947065, 'ns': 1187, 'number_of_cycles': 6, 'hidden_units': 190, 'momentum': 0.6571792241031986}
+Iteration No: 65 ended. Search finished for the next optimal point.
+Time taken: 271.8117
+Function value obtained: -0.5710
+Current minimum: -0.5760
+Iteration No: 66 started. Searching for the next optimal point.
+{'shuffle_minibatch': True, 'l2_reg': -2.5051848231550844, 'ns': 1185, 'number_of_cycles': 6, 'hidden_units': 189, 'momentum': 0.21499371404393836}
+Iteration No: 66 ended. Search finished for the next optimal point.
+Time taken: 260.8496
+Function value obtained: -0.5540
+Current minimum: -0.5760
+Iteration No: 67 started. Searching for the next optimal point.
+{'shuffle_minibatch': True, 'l2_reg': -3.817611712818831, 'ns': 1196, 'number_of_cycles': 6, 'hidden_units': 200, 'momentum': 0.4354458204099667}
+Iteration No: 67 ended. Search finished for the next optimal point.
+Time taken: 272.5116
+Function value obtained: -0.5580
+Current minimum: -0.5760
+Iteration No: 68 started. Searching for the next optimal point.
+{'shuffle_minibatch': True, 'l2_reg': -2.857189533365589, 'ns': 1185, 'number_of_cycles': 2, 'hidden_units': 198, 'momentum': 0.2505572740016139}
+Iteration No: 68 ended. Search finished for the next optimal point.
+Time taken: 95.1446
+Function value obtained: -0.5370
+Current minimum: -0.5760
+Iteration No: 69 started. Searching for the next optimal point.
+{'shuffle_minibatch': True, 'l2_reg': -3.1785984415985484, 'ns': 1200, 'number_of_cycles': 6, 'hidden_units': 52, 'momentum': 0.9239448951457334}
+Iteration No: 69 ended. Search finished for the next optimal point.
+Time taken: 140.3137
+Function value obtained: -0.5290
+Current minimum: -0.5760
+Iteration No: 70 started. Searching for the next optimal point.
+{'shuffle_minibatch': True, 'l2_reg': -2.808621868763312, 'ns': 1196, 'number_of_cycles': 2, 'hidden_units': 199, 'momentum': 0.22336837178001656}
+Iteration No: 70 ended. Search finished for the next optimal point.
+Time taken: 95.7523
+Function value obtained: -0.5430
+Current minimum: -0.5760
+Iteration No: 71 started. Searching for the next optimal point.
+{'shuffle_minibatch': True, 'l2_reg': -4.88294314662996, 'ns': 1198, 'number_of_cycles': 6, 'hidden_units': 200, 'momentum': 0.8687877427620232}
+Iteration No: 71 ended. Search finished for the next optimal point.
+Time taken: 272.5845
+Function value obtained: -0.5640
+Current minimum: -0.5760
+Iteration No: 72 started. Searching for the next optimal point.
+{'shuffle_minibatch': True, 'l2_reg': -3.619100932656435, 'ns': 1150, 'number_of_cycles': 6, 'hidden_units': 198, 'momentum': 0.30750490818625853}
+Iteration No: 72 ended. Search finished for the next optimal point.
+Time taken: 258.7240
+Function value obtained: -0.5580
+Current minimum: -0.5760
+Iteration No: 73 started. Searching for the next optimal point.
+{'shuffle_minibatch': True, 'l2_reg': -2.1648984055423215, 'ns': 1199, 'number_of_cycles': 6, 'hidden_units': 200, 'momentum': 0.770587766208112}
+Iteration No: 73 ended. Search finished for the next optimal point.
+Time taken: 274.1318
+Function value obtained: -0.5410
+Current minimum: -0.5760
+Iteration No: 74 started. Searching for the next optimal point.
+{'shuffle_minibatch': True, 'l2_reg': -3.5547875371957423, 'ns': 1191, 'number_of_cycles': 6, 'hidden_units': 193, 'momentum': 0.45082597173808475}
+Iteration No: 74 ended. Search finished for the next optimal point.
+Time taken: 269.5720
+Function value obtained: -0.5760
+Current minimum: -0.5760
+Iteration No: 75 started. Searching for the next optimal point.
+{'shuffle_minibatch': True, 'l2_reg': -4.988229702094412, 'ns': 1172, 'number_of_cycles': 6, 'hidden_units': 199, 'momentum': 0.8915359697001934}
+Iteration No: 75 ended. Search finished for the next optimal point.
+Time taken: 261.8094
+Function value obtained: -0.5790
+Current minimum: -0.5790
+Iteration No: 76 started. Searching for the next optimal point.
+{'shuffle_minibatch': True, 'l2_reg': -3.138269767667827, 'ns': 1192, 'number_of_cycles': 6, 'hidden_units': 197, 'momentum': 0.21308512040756156}
+Iteration No: 76 ended. Search finished for the next optimal point.
+Time taken: 269.8311
+Function value obtained: -0.5560
+Current minimum: -0.5790
+Iteration No: 77 started. Searching for the next optimal point.
+{'shuffle_minibatch': True, 'l2_reg': -3.2165131150314923, 'ns': 414, 'number_of_cycles': 6, 'hidden_units': 198, 'momentum': 0.7048365103894634}
+Iteration No: 77 ended. Search finished for the next optimal point.
+Time taken: 98.1441
+Function value obtained: -0.5360
+Current minimum: -0.5790
+Iteration No: 78 started. Searching for the next optimal point.
+{'shuffle_minibatch': True, 'l2_reg': -4.982969044926693, 'ns': 1177, 'number_of_cycles': 6, 'hidden_units': 61, 'momentum': 0.41482487373601035}
+Iteration No: 78 ended. Search finished for the next optimal point.
+Time taken: 153.7070
+Function value obtained: -0.5280
+Current minimum: -0.5790
+Iteration No: 79 started. Searching for the next optimal point.
+{'shuffle_minibatch': True, 'l2_reg': -4.81577094378731, 'ns': 417, 'number_of_cycles': 6, 'hidden_units': 197, 'momentum': 0.7971098178314466}
+Iteration No: 79 ended. Search finished for the next optimal point.
+Time taken: 101.7143
+Function value obtained: -0.5330
+Current minimum: -0.5790
+Iteration No: 80 started. Searching for the next optimal point.
+{'shuffle_minibatch': True, 'l2_reg': -4.965453157135427, 'ns': 1191, 'number_of_cycles': 6, 'hidden_units': 185, 'momentum': 0.42949041635756713}
+Iteration No: 80 ended. Search finished for the next optimal point.
+Time taken: 261.8974
+Function value obtained: -0.5230
+Current minimum: -0.5790
+Max at: [-4.988229702094412, 1172, 6, 199, 0.8915359697001934] with value: 0.579
