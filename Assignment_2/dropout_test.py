@@ -26,13 +26,13 @@ if __name__ == "__main__":
 
     # Define model
     model = Sequential(loss=CrossEntropy(), metric=Accuracy())
-    model.add(Dense(nodes=100, input_dim=x_train.shape[0]))
+    model.add(Dense(nodes=800, input_dim=x_train.shape[0]))
     model.add(Relu())
-    model.add(Dropout(ones_ratio=0.85))
-    model.add(Dense(nodes=10, input_dim=100))
+    model.add(Dropout(ones_ratio=0.50))
+    model.add(Dense(nodes=10, input_dim=800))
     model.add(Softmax())
 
-    ns = 800
+    ns = 500
 
     # Define callbacks
     mt = MetricTracker()  # Stores training evolution info
@@ -44,13 +44,15 @@ if __name__ == "__main__":
     # Fit model
     iterations = 4*ns
     model.fit(X=x_train, Y=y_train, X_val=x_val, Y_val=y_val,
-                        batch_size=100, epochs=None, iterations=iterations, lr=0.001, momentum=0.9,
-                        l2_reg=0.1, shuffle_minibatch=True,
-                        callbacks=callbacks)
-    # model.save("models/mlp_overfit_test")
-    mt.plot_training_progress(show=True, save=False, name="figures/dropout_test")
+            batch_size=100, iterations=iterations, momentum=0.89,
+            l2_reg=1e-5, shuffle_minibatch=True,
+            callbacks=callbacks)
+    model.save("models/yes_dropout_test")
     
     # Test model
     # best_model = bms.get_best_model()
     # test_acc, test_loss = best_model.get_metric_loss(x_test, y_test)
+    # subtitle = "No Dropout, Test acc: " + test_acc
+    subtitle = ""
+    mt.plot_training_progress(show=True, save=True, name="figures/test_dropout_test", subtitle=subtitle)
     # print("Test accuracy:", test_acc)
