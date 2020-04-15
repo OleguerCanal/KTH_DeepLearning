@@ -66,11 +66,14 @@ if __name__ == "__main__":
     #     val_accuracies.append(val_acc)
     #     np.save("l2_search_vals", val_accuracies)
     val_accuracies = np.load("l2_search_vals.npy")
-    ratio = 10
+    ratio = 1
     minimum = 50
     maximum = 75
-    l2_params = [l2_params[i] for i in range(80) if i > minimum and i < maximum]
-    val_accuracies = [val_accuracies[i] for i in range(80) if i > minimum and i < maximum]
+    l2_params = [l2_params[i] for i in range(80) if i > minimum and i < maximum and i%ratio == 0]
+    val_accuracies = [val_accuracies[i] for i in range(80) if i > minimum and i < maximum and i%ratio == 0]
+
+    print(l2_params)
+    print(val_accuracies)
 
     plt.plot(l2_params, val_accuracies)
     plt.xlabel("l2 regularization")

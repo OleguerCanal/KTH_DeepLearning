@@ -12,6 +12,7 @@ from mlp.utils import LoadXY
 np.random.seed(1)
 
 if __name__ == "__main__":
+
     # Load data
     x_train, y_train = LoadXY("data_batch_1")
     x_val, y_val = LoadXY("data_batch_2")
@@ -35,21 +36,25 @@ if __name__ == "__main__":
 
     # Define callbacks
     mt = MetricTracker()  # Stores training evolution info
-    bms = BestModelSaver(save_dir=None)  # Saves model with highest val_metric
     lrs = LearningRateScheduler(evolution="cyclic", lr_min=1e-5, lr_max=1e-1, ns=ns)  # Modifies lr while training
-    callbacks = [mt, bms, lrs]
+    callbacks = [mt, lrs]
 
     # Fit model
     iterations = 2*ns
     model.fit(X=x_train, Y=y_train, X_val=x_val, Y_val=y_val,
-                        batch_size=100, epochs=None, iterations=iterations, lr=0.01, momentum=0.0,
-                        l2_reg=0.01, shuffle_minibatch=False,
-                        callbacks=callbacks)
-    # model.save("models/mlp_overfit_test")
-    mt.plot_training_progress(show=False, save=True, name="figures/mlp_cyclic_good")
-    mt.plot_lr_evolution(show=False, save=True, name="figures/lr_cyclic_good")
+            batch_size=100, iterations=iterations,
+            l2_reg=0.01, shuffle_minibatch=False,
+            callbacks=callbacks)
+    # model.save("models/yes_dropout_test")
     
     # Test model
-    best_model = bms.get_best_model()
-    test_acc, test_loss = best_model.get_metric_loss(x_test, y_test)
+    val_acc = model.get_metric_loss(x_val, y_val)[0]
+    test_acc = model.get_metric_loss(x_test, y_test)[0]
+
+    # Test model
     print("Test accuracy:", test_acc)
+
+    # Plot evolution
+    mt.plot_training_progress(show=True, save=False, name="figures/mlp_cyclic_good")
+    mt.plot_lr_evolution(show=True, save=False, name="figures/lr_cyclic_good")
+    
