@@ -16,7 +16,7 @@ def load_idxfile(filename):
         data = np.fromfile(_file, dtype=np.dtype(np.uint8).newbyteorder('>')).reshape(shape)
     return data
     
-def read_mnist(dim=[28,28],n_train=60000,n_test=1000):
+def read_mnist(dim=[28,28],n_train=50000, n_val=10000,n_test=1000):
 
     """
     Read mnist train and test data. Images are normalized to be in range [0,1]. Labels are one-hot coded.
@@ -42,4 +42,6 @@ def read_mnist(dim=[28,28],n_train=60000,n_test=1000):
     def rs(imgs):
         imgs = (imgs.T).reshape((dim[0], dim[1], imgs.shape[0]), order='C')
         return np.expand_dims(imgs, axis=2)  # h, w, c, n
-    return rs(train_imgs[:n_train]),train_lbls_1hot[:n_train],rs(test_imgs[:n_test]),test_lbls_1hot[:n_test]
+    return rs(train_imgs[:n_train]),train_lbls_1hot[:n_train].T,\
+           rs(train_imgs[n_train:n_train+n_val]),train_lbls_1hot[n_train:n_train+n_val].T,\
+           rs(test_imgs[:n_test]),test_lbls_1hot[:n_test].T
