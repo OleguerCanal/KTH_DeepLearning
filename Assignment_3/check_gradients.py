@@ -17,6 +17,8 @@ from mlp.losses import CrossEntropy
 from mlp.layers import Conv2D, Dense, Softmax, Relu, Flatten
 from mlp.callbacks import MetricTracker, BestModelSaver, LearningRateScheduler
 
+np.random.seed(0)
+
 def evaluate_cost_W(W, x, y_real, l2_reg, filter_id):
     model.layers[0].filters[filter_id] = W
     y_pred = model.predict(x)
@@ -68,7 +70,7 @@ def ComputeGradsNum(x, y_real, model, l2_reg, h):
     return grads_w, grads_b
 
 if __name__ == "__main__":
-    x_train, y_train, x_val, y_val, x_test, y_test = read_mnist(n_train=1, n_val=5, n_test=2)
+    x_train, y_train, x_val, y_val, x_test, y_test = read_mnist(n_train=10, n_val=5, n_test=2)
 
     # Define model
     model = Sequential(loss=CrossEntropy(), metric=Accuracy())

@@ -13,7 +13,7 @@ from mlp.callbacks import MetricTracker, BestModelSaver, LearningRateScheduler
 
 if __name__ == "__main__":
     # Load data
-    x_train, y_train, x_val, y_val, x_test, y_test = read_mnist(n_train=1000, n_val=5, n_test=2)
+    x_train, y_train, x_val, y_val, x_test, y_test = read_mnist(n_train=200, n_val=200, n_test=2)
 
     # Define callbacks
     mt = MetricTracker()  # Stores training evolution info (losses and metrics)
@@ -24,12 +24,13 @@ if __name__ == "__main__":
 
     # Define model
     model = Sequential(loss=CrossEntropy(), metric=Accuracy())
-    model.add(Conv2D(num_filters=10, kernel_shape=(5, 5), input_shape=(28, 28, 1)))
+    model.add(Conv2D(num_filters=64, kernel_shape=(6, 6), input_shape=(28, 28, 1)))
     model.add(Relu())
-    model.add(Conv2D(num_filters=20, kernel_shape=(3, 3)))
-    model.add(Relu())
+    # model.add(Conv2D(num_filters=32, kernel_shape=(3, 3)))
+    # model.add(Relu())
     model.add(Flatten())
-    model.add(Dense(nodes=128))
+    # model.add(Flatten(input_shape=(28, 28, 1)))
+    model.add(Dense(nodes=400))
     model.add(Relu())
     model.add(Dense(nodes=10))
     model.add(Softmax())
@@ -41,8 +42,8 @@ if __name__ == "__main__":
 
     # Fit model
     model.fit(X=x_train, Y=y_train, X_val=x_val, Y_val=y_val,
-              batch_size=100, epochs=10, lr = 1e-2, momentum=0.5, callbacks=callbacks)
-
+              batch_size=100, epochs=200, lr = 1e-2, momentum=0.5, callbacks=callbacks)
+    model.save("models/mnist_test_noconv")
     # model.layers[0].show_filters()
 
     # for filt in model.layers[0].filters:
@@ -51,7 +52,7 @@ if __name__ == "__main__":
     # print(model.layers[0].biases)
 
     mt.plot_training_progress()
-    # y_pred_prob = model.predict(x_train)
+    y_pred_prob = model.predict(x_train)
     # # # model.pred
     # print(y_train)
-    # print(y_pred_prob)
+    # print(np.round(y_pred_prob, decimals=2))
