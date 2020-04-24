@@ -53,7 +53,14 @@ def read_cifar_10(n_train=None, n_val=None, n_test=None):
 
     # Load data
     x_train, y_train = LoadXY("data_batch_1")
-    x_val, y_val = LoadXY("data_batch_2")
+    for i in [2, 3, 4, 5]:
+        x, y = LoadXY("data_batch_" + str(i))
+        x_train = np.concatenate((x_train, x), axis=1)
+        y_train = np.concatenate((y_train, y), axis=1)
+    x_val = x_train[:, -1000:]
+    y_val = y_train[:, -1000:]
+    x_train = x_train[:, :-1000]
+    y_train = y_train[:, :-1000]
     x_test, y_test = LoadXY("test_batch")
 
     if n_train is not None:
@@ -134,3 +141,8 @@ def read_names(n_train=-1):
     return x[..., indx[:n_train]], y[..., indx[:n_train]],\
            x[..., val_indxs], y[..., val_indxs],\
            None, None
+
+def read_names_countries():
+    return ["Arabic", "Chinese", "Czech", "Dutch", "English", "French", "German",\
+            "Greek", "Irish", "Italian", "Japanese", "Korean", "Polish", "Portuguese",\
+            "Russian", "Scottish", "Spanish", "Vietnamese"]

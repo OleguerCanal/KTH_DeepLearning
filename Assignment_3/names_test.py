@@ -36,10 +36,9 @@ if __name__ == "__main__":
     # Define hyperparams
     d = x_train.shape[0]
     n1 = 20  # Filters of first Conv2D
-    k1 = 5  # First kernel
+    k1 = 5   # First kernel y size
     n2 = 20  # Filters of second Conv2D
-    k2 = 3
-
+    k2 = 3   # Second kernel y size
     # Define model
     model = Sequential(loss=CrossEntropy(class_count=None), metric=Accuracy())
     model.add(Conv2D(num_filters=n1, kernel_shape=(d, k1), input_shape=x_train.shape[:-1]))
@@ -49,7 +48,6 @@ if __name__ == "__main__":
     model.add(Flatten())
     model.add(Dense(nodes=y_train.shape[0]))
     model.add(Softmax())
-
     # Fit model
     model.fit(X=x_train, Y=y_train, X_val=x_val, Y_val=y_val,
               batch_size=100, epochs=1000, lr = 1e-2, momentum=0.7, l2_reg=0.001,

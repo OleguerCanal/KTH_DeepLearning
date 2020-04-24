@@ -17,7 +17,8 @@ from helper import read_cifar_10
 if __name__ == "__main__":
     # Load data
     # x_train, y_train, x_val, y_val, x_test, y_test = get_data(n_train=200, n_val=200, n_test=2)
-    x_train, y_train, x_val, y_val, x_test, y_test = read_cifar_10(n_train=1000, n_val=200, n_test=200)
+    # x_train, y_train, x_val, y_val, x_test, y_test = read_cifar_10(n_train=1000, n_val=200, n_test=200)
+    x_train, y_train, x_val, y_val, x_test, y_test = read_cifar_10()
 
     print(x_train.shape)
     # print(y_train.shape)
@@ -34,20 +35,35 @@ if __name__ == "__main__":
     # callbacks = [mt, lrs]
     callbacks = [mt]
 
-    # Define model
+    # Define architecture (copied from https://appliedmachinelearning.blog/2018/03/24/achieving-90-accuracy-in-object-recognition-task-on-cifar-10-dataset-with-keras-convolutional-neural-networks/)
     model = Sequential(loss=CrossEntropy(), metric=Accuracy())
-    model.add(Conv2D(num_filters=64, kernel_shape=(6, 6), input_shape=(32, 32, 3)))
+    model.add(Conv2D(num_filters=32, kernel_shape=(3, 3), input_shape=(32, 32, 3)))
     model.add(Relu())
-    model.add(MaxPool2D(kernel_shape=(2, 2)))
     model.add(Conv2D(num_filters=32, kernel_shape=(3, 3)))
     model.add(Relu())
     model.add(MaxPool2D(kernel_shape=(2, 2)))
+    model.add(Dropout(0.8))
+
+    model.add(Conv2D(num_filters=64, kernel_shape=(3, 3)))
+    model.add(Relu())
+    model.add(Conv2D(num_filters=64, kernel_shape=(3, 3)))
+    model.add(Relu())
+    model.add(MaxPool2D(kernel_shape=(2, 2)))
+    model.add(Dropout(0.7))
+
+    model.add(Conv2D(num_filters=128, kernel_shape=(3, 3)))
+    model.add(Relu())
+    model.add(Conv2D(num_filters=128, kernel_shape=(3, 3)))
+    model.add(Relu())
+    model.add(MaxPool2D(kernel_shape=(2, 2)))
+    model.add(Dropout(0.6))
+    
     model.add(Flatten())
-    # model.add(Flatten(input_shape=(32, 32, 3)))
-    model.add(Dense(nodes=400))
+    model.add(Dense(nodes=128))
     model.add(Relu())
     model.add(Dense(nodes=10))
     model.add(Softmax())
+
 
     # for filt in model.layers[0].filters:
     #     print(filt)
@@ -56,7 +72,7 @@ if __name__ == "__main__":
 
     # Fit model
     model.fit(X=x_train, Y=y_train, X_val=x_val, Y_val=y_val,
-              batch_size=200, epochs=50, lr = 1e-2, momentum=0.5, callbacks=callbacks)
+              batch_size=200, epochs=500, lr = 1e-3, momentum=0.8, callbacks=callbacks)
     model.save("models/cifar_test")
     # model.layers[0].show_filters()
 
