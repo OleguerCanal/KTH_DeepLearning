@@ -8,50 +8,16 @@ sys.path.append(str(pathlib.Path(__file__).resolve().parents[1]) + "/Toy-DeepLea
 from mlp.metrics import Accuracy
 from mlp.models import Sequential
 from mlp.losses import CrossEntropy
-from mlp.layers import Conv2D, Dense, Softmax, Relu, Flatten, Dropout
+from mlp.layers import Conv2D, Dense, Softmax, Relu, Flatten, Dropout, MaxPool2D
 from mlp.callbacks import MetricTracker, BestModelSaver, LearningRateScheduler
 from mlp.utils import LoadXY
 
-def get_data(n_train=None, n_val=None, n_test=None):
-    # Load data
-    x_train, y_train = LoadXY("data_batch_1")
-    x_val, y_val = LoadXY("data_batch_2")
-    x_test, y_test = LoadXY("test_batch")
-
-    if n_train is not None:
-        x_train = x_train[..., 0:n_train]
-        y_train = y_train[..., 0:n_train]
-    if n_val is not None:
-        x_val = x_val[..., 0:n_val]
-        y_val = y_val[..., 0:n_val]
-    if n_test is not None:
-        x_test = x_test[..., 0:n_test]
-        y_test = y_test[..., 0:n_test]
-
-    # Preprocessing
-    mean_x = np.mean(x_train)
-    std_x = np.std(x_train)
-    x_train = (x_train - mean_x)/std_x
-    x_val = (x_val - mean_x)/std_x
-    x_test = (x_test - mean_x)/std_x
-
-    # reshaped_train = np.zeros((32, 32, 3, x_train.shape[-1]))
-    # for i in range(x_train.shape[-1]):
-    #     flatted_image = np.array(x_train[..., i])
-    #     image = np.reshape(flatted_image,  (32, 32, 3), order='F')
-    #     cv2.imshow("image", image)
-    #     cv2.waitKey()
-
-    x_train = np.reshape(np.array(x_train), (32, 32, 3, x_train.shape[-1]), order='F')
-    x_val = np.reshape(np.array(x_val), (32, 32, 3, x_val.shape[-1]), order='F')
-    x_test = np.reshape(np.array(x_test), (32, 32, 3, x_test.shape[-1]), order='F')
-
-    return x_train, y_train, x_val, y_val, x_test, y_test
+from helper import read_cifar_10
 
 if __name__ == "__main__":
     # Load data
     # x_train, y_train, x_val, y_val, x_test, y_test = get_data(n_train=200, n_val=200, n_test=2)
-    x_train, y_train, x_val, y_val, x_test, y_test = get_data(n_train=6000, n_val=1000, n_test=200)
+    x_train, y_train, x_val, y_val, x_test, y_test = read_cifar_10(n_train=1000, n_val=200, n_test=200)
 
     print(x_train.shape)
     # print(y_train.shape)
@@ -72,8 +38,10 @@ if __name__ == "__main__":
     model = Sequential(loss=CrossEntropy(), metric=Accuracy())
     model.add(Conv2D(num_filters=64, kernel_shape=(6, 6), input_shape=(32, 32, 3)))
     model.add(Relu())
+    model.add(MaxPool2D(kernel_shape=(2, 2)))
     model.add(Conv2D(num_filters=32, kernel_shape=(3, 3)))
     model.add(Relu())
+    model.add(MaxPool2D(kernel_shape=(2, 2)))
     model.add(Flatten())
     # model.add(Flatten(input_shape=(32, 32, 3)))
     model.add(Dense(nodes=400))

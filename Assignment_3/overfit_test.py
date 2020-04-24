@@ -27,33 +27,16 @@ if __name__ == "__main__":
     model.add(Conv2D(num_filters=64, kernel_shape=(4, 4), input_shape=(28, 28, 1)))
     model.add(Relu())
     model.add(MaxPool2D(kernel_shape=(2, 2)))
-    # model.add(Conv2D(num_filters=32, kernel_shape=(3, 3)))
-    # model.add(Relu())
     model.add(Flatten())
-    # model.add(Flatten(input_shape=(28, 28, 1)))
     model.add(Dense(nodes=400))
     model.add(Relu())
     model.add(Dense(nodes=10))
     model.add(Softmax())
 
-    # for filt in model.layers[0].filters:
-    #     print(filt)
-    # y_pred_prob = model.predict(x_train)
-    # print(y_pred_prob)
-
     # Fit model
     model.fit(X=x_train, Y=y_train, X_val=x_val, Y_val=y_val,
               batch_size=100, epochs=200, lr = 1e-2, momentum=0.5, callbacks=callbacks)
     model.save("models/mnist_test_conv_2")
-    # model.layers[0].show_filters()
-
-    # for filt in model.layers[0].filters:
-    #     print(filt)
-
-    # print(model.layers[0].biases)
 
     mt.plot_training_progress()
     y_pred_prob = model.predict(x_train)
-    # # # model.pred
-    # print(y_train)
-    # print(np.round(y_pred_prob, decimals=2))
