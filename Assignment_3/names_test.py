@@ -53,8 +53,8 @@ if __name__ == "__main__":
     # Fit model
     model.fit(X=x_train, Y=y_train, X_val=x_val, Y_val=y_val,
               batch_size=100, epochs=1000, lr = 1e-2, momentum=0.7, l2_reg=0.001,
-              compensate=True, callbacks=callbacks)
-    model.save("models/names_test")
+              compensate=False, callbacks=callbacks)
+    model.save("models/names_no_compensation")
 
     mt.plot_training_progress()
     # y_pred_prob = model.predict(x_train)
