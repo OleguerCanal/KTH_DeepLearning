@@ -46,7 +46,7 @@ def evaluator(x_train, y_train, x_val, y_val, experiment_name="", **kwargs):
         model.add(Softmax())
         # Fit model
         model.fit(X=x_train, Y=y_train, X_val=x_val, Y_val=y_val,
-                batch_size=batch_size, epochs=500, lr = 5e-3, momentum=0.8, l2_reg=0.001,
+                batch_size=batch_size, epochs=1000, lr = 1e-2, momentum=0.8, l2_reg=0.001,
                 compensate=True, callbacks=[mt])
     except Exception as e:
         print(e)
@@ -94,8 +94,8 @@ if __name__ == "__main__":
                                       input_file=None,
                                       output_file=fixed_args["experiment_name"] + '/evaluations.csv')
     gp_search.init_session()
-    x, y = gp_search.get_maximum(n_calls=80,
-                                 n_random_starts=20,
+    x, y = gp_search.get_maximum(n_calls = 8,
+                                 n_random_starts=5,
                                  noise=0.001,
                                  verbose=True)
     print("Max at:", x, "with value:", y)
