@@ -23,10 +23,10 @@ if __name__ == "__main__":
     # Load model model
     model = Sequential(loss=CrossEntropy())
     # model.load("models/names_test")
-    model.load("models/names_no_compensation")
+    model.load("models/name_metaparam_search_2/n1-39_n2-33_k1-2_k2-10_batch_size-50")
 
     y_pred_train = model.predict_classes(x_train)
     y_pred_val = model.predict_classes(x_val)
     
-    plot_confusion_matrix(y_pred_train, y_train, classes, "figures/conf_no_compensation_train")
-    plot_confusion_matrix(y_pred_val, y_val, classes, "figures/conf_no_compensation_val")
+    plot_confusion_matrix(y_pred_train, y_train, classes, "figures/conf_best_model")
+    plot_confusion_matrix(y_pred_val, y_val, classes, "figures/conf_best_model_val")
