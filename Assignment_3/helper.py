@@ -142,6 +142,42 @@ def read_names(n_train=-1):
            x[..., val_indxs], y[..., val_indxs],\
            None, None
 
+
+def read_names_test(n_train=-1):
+    def read_file(filepath="data/names/test.txt"):
+        names = []
+        labels = []
+        with open(filepath) as fp:
+            line = fp.readline()
+            while line:
+                line = line.replace("  ", " ")
+                # print(line)
+                names.append(line.split(" ")[0].lower())
+                labels.append(int(line.split(" ")[-1]))
+                line = fp.readline()
+        return names, labels
+
+    def encode_names(names):
+        n_len = 19
+        x = np.zeros((ord('z')-ord('a')+1, n_len, len(names)))
+        for n in range(len(names)):
+            for i, char in enumerate(names[n]):
+                if ord(char) > ord('z') or ord(char) < ord('a'):
+                    continue
+                x[ord(char)-ord('a')][i][n] = 1
+        return np.expand_dims(x, axis=2).astype(float)        
+
+    def get_one_hot_labels(labels):
+        labels = np.array(labels)
+        one_hot_labels = np.zeros((labels.size, np.max(labels)))
+        one_hot_labels[np.arange(labels.size), labels-1] = 1
+        return one_hot_labels.T
+    
+    names, labels = read_file()
+    x = encode_names(names)
+    y = get_one_hot_labels(labels)
+    return x, y, names
+
 def read_names_countries():
     return ["Arabic", "Chinese", "Czech", "Dutch", "English", "French", "German",\
             "Greek", "Irish", "Italian", "Japanese", "Korean", "Polish", "Portuguese",\

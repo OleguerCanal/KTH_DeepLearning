@@ -17,7 +17,7 @@ from mlp.losses import CrossEntropy
 from mlp.layers import Conv2D, Dense, Softmax, Relu, Flatten, MaxPool2D
 from mlp.callbacks import MetricTracker, BestModelSaver, LearningRateScheduler
 
-np.random.seed(0)
+np.random.seed(1)
 
 def evaluate_cost_W(W, x, y_real, l2_reg, filter_id):
     model.layers[0].filters[filter_id] = W
@@ -85,13 +85,15 @@ if __name__ == "__main__":
 
     # Define model
     model = Sequential(loss=CrossEntropy(), metric=Accuracy())
-    model.add(Conv2D(num_filters=2, kernel_shape=(4, 4), input_shape=x_train.shape[0:-1]))
+    model.add(Conv2D(num_filters=2, kernel_shape=(4, 4), stride=3, dilation_rate=2, input_shape=x_train.shape[0:-1]))
     model.add(Relu())
-    model.add(MaxPool2D((2, 2)))
+    model.add(MaxPool2D((2, 2), stride=3))
     model.add(Flatten())
     model.add(Dense(nodes=y_train.shape[0]))
     model.add(Relu())
     model.add(Softmax())
+
+    print(np.min(np.abs(model.layers[0].filters)))
 
     reg = 0.0
 
@@ -107,7 +109,7 @@ if __name__ == "__main__":
 
     # Get Numerical gradient
     num_time = time.time()
-    numerical_grad_w, numerical_grad_b = ComputeGradsNum(x_train, y_train, model, l2_reg=reg, h=1e-7)
+    numerical_grad_w, numerical_grad_b = ComputeGradsNum(x_train, y_train, model, l2_reg=reg, h=1e-5)
     # print(numerical_grad_w)
     print(numerical_grad_b)
     num_time = time.time() - num_time
@@ -129,7 +131,7 @@ if __name__ == "__main__":
 
 
     print("Bias Error:")
-    _EPS = 0.0000001
+    _EPS = 0.000000001
     denom = np.abs(analytical_grad_bias) + np.abs(numerical_grad_b)
     av_error = np.average(
             np.divide(
