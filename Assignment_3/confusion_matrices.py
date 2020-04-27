@@ -17,6 +17,7 @@ np.random.seed(1)
 if __name__ == "__main__":
     # Load data
     x_train, y_train, x_val, y_val, _, _ = read_names(n_train=-1)
+    print(x_train.shape)
     classes = read_names_countries()
 
     # Load model model
