@@ -17,7 +17,7 @@ from helper import read_cifar_10
 if __name__ == "__main__":
     # Load data
     # x_train, y_train, x_val, y_val, x_test, y_test = get_data(n_train=200, n_val=200, n_test=2)
-    x_train, y_train, x_val, y_val, x_test, y_test = read_cifar_10(n_train=10000, n_val=200, n_test=200)
+    x_train, y_train, x_val, y_val, x_test, y_test = read_cifar_10(n_train=15000, n_val=200, n_test=200)
     # x_train, y_train, x_val, y_val, x_test, y_test = read_cifar_10()
 
     print(x_train.shape)
@@ -58,8 +58,10 @@ if __name__ == "__main__":
     # print(y_pred_prob)
 
     # Fit model
+    model.load("models/cifar_test_2")
+    mt.load("models/tracker")
     model.fit(X=x_train, Y=y_train, X_val=x_val, Y_val=y_val,
-              batch_size=100, epochs=50, momentum=0.9, l2_reg=0.005, callbacks=callbacks)
+              batch_size=100, epochs=20, momentum=0.9, l2_reg=0.003, callbacks=callbacks)
     model.save("models/cifar_test_2")
     # model.layers[0].show_filters()
 
