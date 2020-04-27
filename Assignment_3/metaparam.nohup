@@ -1,0 +1,49 @@
+Iteration No: 1 started. Evaluating function at random point.
+{'n1': 23, 'n2': 38, 'k1': 4, 'k2': 9, 'batch_size': 113}
+Iteration No: 1 ended. Evaluation done at random point.
+Time taken: 10991.1567
+Function value obtained: -0.5159
+Current minimum: -0.5159
+Iteration No: 2 started. Evaluating function at random point.
+{'n1': 40, 'n2': 19, 'k1': 8, 'k2': 6, 'batch_size': 68}
+Iteration No: 2 ended. Evaluation done at random point.
+Time taken: 16620.3327
+Function value obtained: -0.4722
+Current minimum: -0.5159
+Iteration No: 3 started. Evaluating function at random point.
+{'n1': 21, 'n2': 16, 'k1': 4, 'k2': 3, 'batch_size': 181}
+Iteration No: 3 ended. Evaluation done at random point.
+Time taken: 7223.0114
+Function value obtained: -0.5278
+Current minimum: -0.5278
+Iteration No: 4 started. Evaluating function at random point.
+{'n1': 24, 'n2': 17, 'k1': 7, 'k2': 9, 'batch_size': 202}
+Iteration No: 4 ended. Evaluation done at random point.
+Time taken: 7021.0308
+Function value obtained: -0.5119
+Current minimum: -0.5278
+Iteration No: 5 started. Evaluating function at random point.
+{'n1': 36, 'n2': 30, 'k1': 5, 'k2': 10, 'batch_size': 137}
+Iteration No: 5 ended. Evaluation done at random point.
+Time taken: 9924.9481
+Function value obtained: -0.5476
+Current minimum: -0.5476
+Iteration No: 6 started. Searching for the next optimal point.
+{'n1': 11, 'n2': 11, 'k1': 2, 'k2': 9, 'batch_size': 286}
+Iteration No: 6 ended. Search finished for the next optimal point.
+Time taken: 4663.2433
+Function value obtained: -0.4802
+Current minimum: -0.5476
+Iteration No: 7 started. Searching for the next optimal point.
+{'n1': 13, 'n2': 40, 'k1': 8, 'k2': 2, 'batch_size': 278}
+Iteration No: 7 ended. Search finished for the next optimal point.
+Time taken: 6243.4499
+Function value obtained: -0.4524
+Current minimum: -0.5476
+Iteration No: 8 started. Searching for the next optimal point.
+{'n1': 16, 'n2': 38, 'k1': 2, 'k2': 2, 'batch_size': 158}
+Iteration No: 8 ended. Search finished for the next optimal point.
+Time taken: 6853.6608
+Function value obtained: -0.5198
+Current minimum: -0.5476
+Max at: [36, 30, 5, 10, 137] with value: 0.5476190476190477

@@ -1,0 +1,67 @@
+Iteration No: 1 started. Searching for the next optimal point.
+Iteration No: 1 ended. Search finished for the next optimal point.
+Time taken: 0.9562
+Function value obtained: -0.5198
+Current minimum: -0.5476
+Iteration No: 2 started. Searching for the next optimal point.
+{'n1': 40, 'n2': 12, 'k1': 2, 'k2': 7, 'batch_size': 50}
+Iteration No: 2 ended. Search finished for the next optimal point.
+Time taken: 10824.4460
+Function value obtained: -0.5278
+Current minimum: -0.5476
+Iteration No: 3 started. Searching for the next optimal point.
+{'n1': 39, 'n2': 33, 'k1': 2, 'k2': 10, 'batch_size': 50}
+Iteration No: 3 ended. Search finished for the next optimal point.
+Time taken: 15769.4759
+Function value obtained: -0.5357
+Current minimum: -0.5476
+Iteration No: 4 started. Searching for the next optimal point.
+{'n1': 13, 'n2': 12, 'k1': 2, 'k2': 8, 'batch_size': 50}
+Iteration No: 4 ended. Search finished for the next optimal point.
+Time taken: 5943.3823
+Function value obtained: -0.4881
+Current minimum: -0.5476
+Iteration No: 5 started. Searching for the next optimal point.
+{'n1': 40, 'n2': 37, 'k1': 2, 'k2': 3, 'batch_size': 204}
+Iteration No: 5 ended. Search finished for the next optimal point.
+Time taken: 5609.3503
+Function value obtained: -0.5317
+Current minimum: -0.5476
+Iteration No: 6 started. Searching for the next optimal point.
+{'n1': 40, 'n2': 13, 'k1': 2, 'k2': 2, 'batch_size': 289}
+Iteration No: 6 ended. Search finished for the next optimal point.
+Time taken: 4196.1020
+Function value obtained: -0.4841
+Current minimum: -0.5476
+Iteration No: 7 started. Searching for the next optimal point.
+{'n1': 39, 'n2': 16, 'k1': 10, 'k2': 7, 'batch_size': 50}
+Iteration No: 7 ended. Search finished for the next optimal point.
+Time taken: 11478.8826
+Function value obtained: -0.4722
+Current minimum: -0.5476
+Iteration No: 8 started. Searching for the next optimal point.
+{'n1': 40, 'n2': 35, 'k1': 2, 'k2': 9, 'batch_size': 72}
+Iteration No: 8 ended. Search finished for the next optimal point.
+Time taken: 18869.9466
+Function value obtained: -0.4881
+Current minimum: -0.5476
+Iteration No: 9 started. Searching for the next optimal point.
+{'n1': 10, 'n2': 38, 'k1': 10, 'k2': 10, 'batch_size': 96}
+Iteration No: 9 ended. Search finished for the next optimal point.
+Time taken: 3755.2328
+Function value obtained: -0.4802
+Current minimum: -0.5476
+Iteration No: 10 started. Searching for the next optimal point.
+{'n1': 40, 'n2': 14, 'k1': 10, 'k2': 9, 'batch_size': 299}
+Iteration No: 10 ended. Search finished for the next optimal point.
+Time taken: 5768.1038
+Function value obtained: -0.5000
+Current minimum: -0.5476
+Iteration No: 11 started. Searching for the next optimal point.
+{'n1': 12, 'n2': 33, 'k1': 2, 'k2': 2, 'batch_size': 298}
+Iteration No: 11 ended. Search finished for the next optimal point.
+Time taken: 5002.9874
+Function value obtained: -0.4405
+Current minimum: -0.5476
+Iteration No: 12 started. Searching for the next optimal point.
+{'n1': 40, 'n2': 19, 'k1': 10, 'k2': 8, 'batch_size': 93}
