@@ -65,3 +65,13 @@ Function value obtained: -0.4405
 Current minimum: -0.5476
 Iteration No: 12 started. Searching for the next optimal point.
 {'n1': 40, 'n2': 19, 'k1': 10, 'k2': 8, 'batch_size': 93}
+Iteration No: 12 ended. Search finished for the next optimal point.
+Time taken: 11202.5817
+Function value obtained: -0.4921
+Current minimum: -0.5476
+{'n1': 40, 'n2': 17, 'k1': 2, 'k2': 2, 'batch_size': 146}
+Iteration No: 13 ended. Search finished for the next optimal point.
+Time taken: 20245.9813
+Function value obtained: -0.5159
+Current minimum: -0.5476
+Max at: [36.0, 30.0, 5.0, 10.0, 137.0] with value: 0.5476190476190477
