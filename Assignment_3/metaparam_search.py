@@ -72,7 +72,7 @@ if __name__ == "__main__":
     x_train, y_train, x_val, y_val, _, _ = read_names(n_train=-1)
 
     fixed_args = {
-        "experiment_name": "name_metaparam_search",
+        "experiment_name": "name_metaparam_search_2",
         "x_train": x_train,
         "y_train": y_train,
         "x_val": x_val,
@@ -91,11 +91,11 @@ if __name__ == "__main__":
     gp_search = GaussianProcessSearch(search_space=search_space,
                                       fixed_space=fixed_args,
                                       evaluator=evaluator,
-                                      input_file=None,
+                                      input_file="name_metaparam_search" + '/evaluations.csv',
                                       output_file=fixed_args["experiment_name"] + '/evaluations.csv')
     gp_search.init_session()
-    x, y = gp_search.get_maximum(n_calls = 8,
-                                 n_random_starts=5,
+    x, y = gp_search.get_maximum(n_calls = 12,
+                                 n_random_starts=0,
                                  noise=0.001,
                                  verbose=True)
     print("Max at:", x, "with value:", y)
