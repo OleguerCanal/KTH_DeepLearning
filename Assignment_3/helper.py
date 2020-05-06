@@ -64,8 +64,8 @@ def read_cifar_10(n_train=None, n_val=None, n_test=None):
     x_test, y_test = LoadXY("test_batch")
 
     if n_train is not None:
-        x_train = x_train[..., 14000:14000+n_train]
-        y_train = y_train[..., 14000:14000+n_train]
+        x_train = x_train[..., 0:n_train]
+        y_train = y_train[..., 0:n_train]
     if n_val is not None:
         x_val = x_val[..., 0:n_val]
         y_val = y_val[..., 0:n_val]

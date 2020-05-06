@@ -521,321 +521,391 @@ class MetaParamOptimizer:
         return dictionaries
 
 #####################################################
-# The file /home/oleguer/Documents/p4/deepstuff/KTH_DeepLearning/Assignment_2/cyclical_lr_test.py contains:
+# The file /home/oleguer/Documents/p4/deepstuff/KTH_DeepLearning/Assignment_3/overfit_test.py contains:
  #####################################################
+
+import numpy as np
 import sys, pathlib
+from helper import read_mnist
+import cv2
+sys.path.append(str(pathlib.Path(__file__).resolve().parents[1]) + "/Toy-DeepLearning-Framework/")
+
+from mlp.metrics import Accuracy
+from mlp.models import Sequential
+from mlp.losses import CrossEntropy
+from mlp.layers import Conv2D, Dense, Softmax, Relu, Flatten, Dropout, MaxPool2D
+from mlp.callbacks import MetricTracker, BestModelSaver, LearningRateScheduler
+
+if __name__ == "__main__":
+    # Load data
+    x_train, y_train, x_val, y_val, x_test, y_test = read_mnist(n_train=200, n_val=200, n_test=2)
+
+    # Define callbacks
+    mt = MetricTracker()  # Stores training evolution info (losses and metrics)
+    # lrs = LearningRateScheduler(evolution="linear", lr_min=1e-3, lr_max=9e-1)
+    # lrs = LearningRateScheduler(evolution="constant", lr_min=1e-3, lr_max=9e-1)
+    # callbacks = [mt, lrs]
+    callbacks = [mt]
+
+    # Define model
+    model = Sequential(loss=CrossEntropy(), metric=Accuracy())
+    model.add(Conv2D(num_filters=64, kernel_shape=(4, 4), input_shape=(28, 28, 1)))
+    model.add(Relu())
+    model.add(MaxPool2D(kernel_shape=(2, 2)))
+    model.add(Flatten())
+    model.add(Dense(nodes=400))
+    model.add(Relu())
+    model.add(Dense(nodes=10))
+    model.add(Softmax())
+
+    # Fit model
+    model.fit(X=x_train, Y=y_train, X_val=x_val, Y_val=y_val,
+              batch_size=100, epochs=200, lr = 1e-2, momentum=0.5, callbacks=callbacks)
+    model.save("models/mnist_test_conv_2")
+
+    mt.plot_training_progress()
+    y_pred_prob = model.predict(x_train)
+
+#####################################################
+# The file /home/oleguer/Documents/p4/deepstuff/KTH_DeepLearning/Assignment_3/check_gradients.py contains:
+ #####################################################
+
+import numpy as np
+import sys, pathlib
+from helper import read_mnist, read_cifar_10, read_names
+import cv2
 sys.path.append(str(pathlib.Path(__file__).resolve().parents[1]) + "/Toy-DeepLearning-Framework/")
 
 import numpy as np
-from mlp.callbacks import MetricTracker, BestModelSaver, LearningRateScheduler
-from mlp.layers import Dense, Softmax, Relu
-from mlp.losses import CrossEntropy
-from mlp.models import Sequential
-from mlp.metrics import Accuracy
+import copy
+import time
+from tqdm import tqdm
+
 from mlp.utils import LoadXY
+from mlp.metrics import Accuracy
+from mlp.models import Sequential
+from mlp.losses import CrossEntropy
+from mlp.layers import Conv2D, Dense, Softmax, Relu, Flatten, MaxPool2D
+from mlp.callbacks import MetricTracker, BestModelSaver, LearningRateScheduler
+
+np.random.seed(1)
+
+def evaluate_cost_W(W, x, y_real, l2_reg, filter_id):
+    model.layers[0].filters[filter_id] = W
+    y_pred = model.predict(x)
+    c = model.cost(y_pred, y_real, l2_reg)
+    return c
+
+def evaluate_cost_b(W, x, y_real, l2_reg, bias_id):
+    model.layers[0].biases[bias_id] = W
+    y_pred = model.predict(x)
+    c = model.cost(y_pred, y_real, l2_reg)
+    return c
+
+def ComputeGradsNum(x, y_real, model, l2_reg, h):
+    """ Converted from matlab code """
+    print("Computing numerical gradients...")
+
+    grads_w = []
+    for filter_id, filt in enumerate(model.layers[0].filters):
+        W = copy.deepcopy(filt)  # Compute W
+        grad_W = np.zeros(W.shape)
+        for i in tqdm(range(W.shape[0])):
+            for j in range(W.shape[1]):
+                for c in range(W.shape[2]):
+                    W_try = np.array(W)
+                    # print(W_try.shape)
+                    W_try[i,j,c] -= h
+                    c1 = evaluate_cost_W(W_try, x, y_real, l2_reg, filter_id)
+                    
+                    W_try = np.array(W)
+                    W_try[i,j,c] += h
+                    c2 = evaluate_cost_W(W_try, x, y_real, l2_reg, filter_id)
+                    
+                    grad_W[i,j,c] = (c2-c1) / (2*h)
+
+                    model.layers[0].filters[filter_id] = W  # Reset it
+
+        grads_w.append(grad_W)
+
+    grads_b = []
+    for bias_id, bias in enumerate(model.layers[0].biases):
+        b_try = copy.deepcopy(bias) - h
+        c1 = evaluate_cost_b(b_try, x, y_real, l2_reg, bias_id)
+        
+        b_try = copy.deepcopy(bias) + h
+        c2 = evaluate_cost_b(b_try, x, y_real, l2_reg, bias_id)
+        
+        grad_b = (c2-c1) / (2*h)
+        model.layers[0].biases[bias_id] = bias  # Reset it
+
+        grads_b.append(grad_b)
+    return grads_w, grads_b
+
+if __name__ == "__main__":
+    x_train, y_train, x_val, y_val, x_test, y_test = read_cifar_10(n_train=3, n_val=5, n_test=2)
+    # x_train, y_train, x_val, y_val, x_test, y_test = read_mnist(n_train=2, n_val=5, n_test=2)
+    # x_train, y_train, x_val, y_val, x_test, y_test = read_names(n_train=500)
+
+    class_sum = np.sum(y_train, axis=1)*y_train.shape[0]
+    class_count = np.reciprocal(class_sum, where=abs(class_sum) > 0)
+
+    print(class_count)
+
+    print(type(x_train[0, 0, 0]))
+
+    # Define model
+    model = Sequential(loss=CrossEntropy(), metric=Accuracy())
+    model.add(Conv2D(num_filters=2, kernel_shape=(4, 4), stride=3, dilation_rate=2, input_shape=x_train.shape[0:-1]))
+    model.add(Relu())
+    model.add(MaxPool2D((2, 2), stride=3))
+    model.add(Flatten())
+    model.add(Dense(nodes=y_train.shape[0]))
+    model.add(Relu())
+    model.add(Softmax())
+
+    print(np.min(np.abs(model.layers[0].filters)))
+
+    reg = 0.0
+
+    # Fit model
+    anal_time = time.time()
+    model.fit(X=x_train, Y=y_train, X_val=x_val, Y_val=y_val,
+              batch_size=200, epochs=1, lr=0, momentum=0, l2_reg=reg)
+    analytical_grad_weight = model.layers[0].filter_gradients
+    analytical_grad_bias = model.layers[0].bias_gradients
+    # print(analytical_grad_weight)
+    print(analytical_grad_bias)
+    anal_time = time.time() - anal_time
+
+    # Get Numerical gradient
+    num_time = time.time()
+    numerical_grad_w, numerical_grad_b = ComputeGradsNum(x_train, y_train, model, l2_reg=reg, h=1e-5)
+    # print(numerical_grad_w)
+    print(numerical_grad_b)
+    num_time = time.time() - num_time
+
+    print("Weight Error:")
+    _EPS = 0.0000001
+    denom = np.abs(analytical_grad_weight) + np.abs(numerical_grad_w)
+    av_error = np.average(
+            np.divide(
+                np.abs(analytical_grad_weight-numerical_grad_w),
+                np.multiply(denom, (denom > _EPS)) + np.multiply(_EPS*np.ones(denom.shape), (denom <= _EPS))))
+    max_error = np.max(
+            np.divide(
+                np.abs(analytical_grad_weight-numerical_grad_w),
+                np.multiply(denom, (denom > _EPS)) + np.multiply(_EPS*np.ones(denom.shape), (denom <= _EPS))))
+    
+    print("Averaged Element-Wise Relative Error:", av_error*100, "%")
+    print("Max Element-Wise Relative Error:", max_error*100, "%")
+
+
+    print("Bias Error:")
+    _EPS = 0.000000001
+    denom = np.abs(analytical_grad_bias) + np.abs(numerical_grad_b)
+    av_error = np.average(
+            np.divide(
+                np.abs(analytical_grad_bias-numerical_grad_b),
+                np.multiply(denom, (denom > _EPS)) + np.multiply(_EPS*np.ones(denom.shape), (denom <= _EPS))))
+    max_error = np.max(
+            np.divide(
+                np.abs(analytical_grad_bias-numerical_grad_b),
+                np.multiply(denom, (denom > _EPS)) + np.multiply(_EPS*np.ones(denom.shape), (denom <= _EPS))))
+    print("Averaged Element-Wise Relative Error:", av_error*100, "%")
+    print("Max Element-Wise Relative Error:", max_error*100, "%")
+
+    print("Speedup:", (num_time/anal_time))
+
+
+
+#####################################################
+# The file /home/oleguer/Documents/p4/deepstuff/KTH_DeepLearning/Assignment_3/cifar_10_test.py contains:
+ #####################################################
+
+import numpy as np
+import sys, pathlib
+from helper import read_mnist
+import cv2
+sys.path.append(str(pathlib.Path(__file__).resolve().parents[1]) + "/Toy-DeepLearning-Framework/")
+
+from mlp.metrics import Accuracy
+from mlp.models import Sequential
+from mlp.losses import CrossEntropy
+from mlp.layers import Conv2D, Dense, Softmax, Relu, Flatten, Dropout, MaxPool2D
+from mlp.callbacks import MetricTracker, BestModelSaver, LearningRateScheduler
+from mlp.utils import LoadXY
+
+from helper import read_cifar_10
+
+if __name__ == "__main__":
+    # Load data
+    # x_train, y_train, x_val, y_val, x_test, y_test = get_data(n_train=200, n_val=200, n_test=2)
+    x_train, y_train, x_val, y_val, x_test, y_test = read_cifar_10(n_train=30000, n_val=200, n_test=200)
+    # x_train, y_train, x_val, y_val, x_test, y_test = read_cifar_10()
+
+    print(x_train.shape)
+    # print(y_train.shape)
+
+    # for i in range(200):
+    #     cv2.imshow("image", x_train[..., i])
+    #     cv2.waitKey()
+
+    # Define callbacks
+    mt = MetricTracker(file_name="cifar_test_3")  # Stores training evolution info (losses and metrics)
+    # bms = BestModelSaver("models/best_cifar")  # Stores training evolution info (losses and metrics)
+    lrs = LearningRateScheduler(evolution="cyclic", lr_min=1e-3, lr_max=0.2, ns=500)
+    # lrs = LearningRateScheduler(evolution="constant", lr_min=1e-3, lr_max=9e-1)
+    # callbacks = [mt, lrs]
+    callbacks = [mt, lrs]
+
+    # Define architecture (copied from https://appliedmachinelearning.blog/2018/03/24/achieving-90-accuracy-in-object-recognition-task-on-cifar-10-dataset-with-keras-convolutional-neural-networks/)
+    model = Sequential(loss=CrossEntropy(), metric=Accuracy())
+    model.add(Conv2D(num_filters=32, kernel_shape=(3, 3), stride=2, input_shape=(32, 32, 3)))
+    model.add(Relu())
+    model.add(Conv2D(num_filters=64, kernel_shape=(3, 3)))
+    model.add(Relu())
+    model.add(MaxPool2D(kernel_shape=(2, 2), stride=2))
+    model.add(Conv2D(num_filters=128, kernel_shape=(2, 2)))
+    model.add(Relu())
+    model.add(MaxPool2D(kernel_shape=(2, 2)))
+    model.add(Flatten())
+    model.add(Dense(nodes=200))
+    model.add(Relu())
+    model.add(Dense(nodes=10))
+    model.add(Softmax())
+
+
+    # for filt in model.layers[0].filters:
+    #     print(filt)
+    # y_pred_prob = model.predict(x_train)
+    # print(y_pred_prob)
+
+    # Fit model
+    # model.load("models/cifar_test_2")
+    # mt.load("models/tracker")
+    model.fit(X=x_train, Y=y_train, X_val=x_val, Y_val=y_val,
+              batch_size=100, epochs=20, momentum=0.9, l2_reg=0.003, callbacks=callbacks)
+    model.save("models/cifar_test_3")
+    # model.layers[0].show_filters()
+
+    # for filt in model.layers[0].filters:
+    #     print(filt)
+
+    # print(model.layers[0].biases)
+
+    mt.plot_training_progress()
+    # y_pred_prob = model.predict(x_train)
+    # # # model.pred
+    # print(y_train)
+    # print(np.round(y_pred_prob, decimals=2))
+
+
+#####################################################
+# The file /home/oleguer/Documents/p4/deepstuff/KTH_DeepLearning/Assignment_3/names.py contains:
+ #####################################################
+
+import numpy as np
+import sys, pathlib
+from helper import read_names
+import cv2
+sys.path.append(str(pathlib.Path(__file__).resolve().parents[1]) + "/Toy-DeepLearning-Framework/")
+
+from mlp.metrics import Accuracy
+from mlp.models import Sequential
+from mlp.losses import CrossEntropy
+from mlp.layers import Conv2D, Dense, Softmax, Relu, Flatten, Dropout, MaxPool2D
+from mlp.callbacks import MetricTracker, BestModelSaver, LearningRateScheduler
+
+if __name__ == "__main__":
+    # Load data
+    x_train, y_train, x_val, y_val, _, _ = read_names(n_train=-1)
+
+    # Compute class count for normalization
+    class_sum = np.sum(y_train, axis=1)*y_train.shape[0]
+    class_count = np.reciprocal(class_sum, where=abs(class_sum) > 0)
+
+    print(x_train.shape)
+    print(np.average(y_train, axis=1))
+    print(class_sum)
+    print(class_count)
+    
+    # Define callbacks
+    mt = MetricTracker()  # Stores training evolution info (losses and metrics)
+    # lrs = LearningRateScheduler(evolution="linear", lr_min=1e-3, lr_max=9e-1)
+    # lrs = LearningRateScheduler(evolution="constant", lr_min=1e-3, lr_max=9e-1)
+    # callbacks = [mt, lrs]
+    callbacks = [mt]
+
+    # Define hyperparams
+    d = x_train.shape[0]
+    n1 = 40  # Filters of first Conv2D
+    k1 = 6   # First kernel y size
+    n2 = 20  # Filters of second Conv2D
+    k2 = 4   # Second kernel y size
+    # Define model
+    model = Sequential(loss=CrossEntropy(class_count=None), metric=Accuracy())
+    model.add(Conv2D(num_filters=n1, kernel_shape=(d, k1), input_shape=x_train.shape[:-1]))
+    model.add(Relu())
+    model.add(Conv2D(num_filters=n2, kernel_shape=(1, k2)))
+    model.add(Relu())
+    model.add(Flatten())
+    model.add(Dense(nodes=y_train.shape[0]))
+    model.add(Softmax())
+    # Fit model
+    model.fit(X=x_train, Y=y_train, X_val=x_val, Y_val=y_val,
+              batch_size=100, epochs=500, lr = 1e-3, momentum=0.8, l2_reg=0.001,
+              compensate=True, callbacks=callbacks)
+    model.save("models/names_best")
+
+    mt.plot_training_progress(save=True, name="figures/names_best")
+    # y_pred_prob = model.predict(x_train)
+
+#####################################################
+# The file /home/oleguer/Documents/p4/deepstuff/KTH_DeepLearning/Assignment_3/confusion_matrices.py contains:
+ #####################################################
+
+import numpy as np
+import sys, pathlib
+from helper import read_names, read_names_countries
+import cv2
+sys.path.append(str(pathlib.Path(__file__).resolve().parents[1]) + "/Toy-DeepLearning-Framework/")
+
+from mlp.metrics import Accuracy
+from mlp.models import Sequential
+from mlp.losses import CrossEntropy
+from mlp.layers import Conv2D, Dense, Softmax, Relu, Flatten, Dropout, MaxPool2D
+from mlp.callbacks import MetricTracker, BestModelSaver, LearningRateScheduler
+from mlp.utils import plot_confusion_matrix
 
 np.random.seed(1)
 
 if __name__ == "__main__":
     # Load data
-    x_train, y_train = LoadXY("data_batch_1")
-    x_val, y_val = LoadXY("data_batch_2")
-    x_test, y_test = LoadXY("test_batch")
+    x_train, y_train, x_val, y_val, _, _ = read_names(n_train=-1)
+    print(x_train.shape)
+    classes = read_names_countries()
 
-    # Preprocessing
-    mean_x = np.mean(x_train)
-    std_x = np.std(x_train)
-    x_train = (x_train - mean_x)/std_x
-    x_val = (x_val - mean_x)/std_x
-    x_test = (x_test - mean_x)/std_x
-
-    # Define model
-    model = Sequential(loss=CrossEntropy(), metric=Accuracy())
-    model.add(Dense(nodes=50, input_dim=x_train.shape[0]))
-    model.add(Relu())
-    model.add(Dense(nodes=10, input_dim=50))
-    model.add(Softmax())
-
-    ns = 500
-
-    # Define callbacks
-    mt = MetricTracker()  # Stores training evolution info
-    bms = BestModelSaver(save_dir=None)  # Saves model with highest val_metric
-    lrs = LearningRateScheduler(evolution="cyclic", lr_min=1e-5, lr_max=1e-1, ns=ns)  # Modifies lr while training
-    callbacks = [mt, bms, lrs]
-
-    # Fit model
-    iterations = 2*ns
-    model.fit(X=x_train, Y=y_train, X_val=x_val, Y_val=y_val,
-                        batch_size=100, epochs=None, iterations=iterations, lr=0.01, momentum=0.0,
-                        l2_reg=0.01, shuffle_minibatch=False,
-                        callbacks=callbacks)
-    # model.save("models/mlp_overfit_test")
-    mt.plot_training_progress(show=False, save=True, name="figures/mlp_cyclic_good")
-    mt.plot_lr_evolution(show=False, save=True, name="figures/lr_cyclic_good")
-    
-    # Test model
-    best_model = bms.get_best_model()
-    test_acc, test_loss = best_model.get_metric_loss(x_test, y_test)
-    print("Test accuracy:", test_acc)
-
-#####################################################
-# The file /home/oleguer/Documents/p4/deepstuff/KTH_DeepLearning/Assignment_2/l2reg_search.py contains:
- #####################################################
-import sys, pathlib
-sys.path.append(str(pathlib.Path(__file__).resolve().parents[1]) + "/Toy-DeepLearning-Framework/")
-
-import numpy as np
-from mlp.callbacks import MetricTracker, BestModelSaver, LearningRateScheduler
-from mlp.layers import Dense, Softmax, Relu, Dropout
-from mlp.losses import CrossEntropy
-from mlp.models import Sequential
-from mlp.metrics import Accuracy
-from mlp.utils import LoadXY
-import matplotlib.pyplot as plt
-
-np.random.seed(1)
-
-def evaluator(l2_reg):
-    # Define model
-    model = Sequential(loss=CrossEntropy(), metric=Accuracy())
-    model.add(Dense(nodes=800, input_dim=x_train.shape[0]))
-    model.add(Relu())
-    model.add(Dense(nodes=10, input_dim=800))
-    model.add(Softmax())
-
-    ns = 800
-
-    # Define callbacks
-    mt = MetricTracker()  # Stores training evolution info
-    lrs = LearningRateScheduler(evolution="cyclic", lr_min=1e-3, lr_max=1e-1, ns=ns)  # Modifies lr while training
-    callbacks = [mt, lrs]
-
-    # Fit model
-    iterations = 4*ns
-    model.fit(X=x_train, Y=y_train, X_val=x_val, Y_val=y_val,
-            batch_size=100, iterations=iterations,
-            l2_reg=l2_reg, shuffle_minibatch=True,
-            callbacks=callbacks)
-    model.save("models/yes_dropout_test")
-    
-    # Test model
-    val_acc = model.get_metric_loss(x_val, y_val)[0]
-    test_acc = model.get_metric_loss(x_test, y_test)[0]
-    subtitle = "L2 param: " + str(l2_reg) + ", Test acc: " + str(test_acc)
-    mt.plot_training_progress(show=True, save=True, name="figures/l2reg_optimization/" + str(l2_reg), subtitle=subtitle)
-    print("Val accuracy:", val_acc)
-    print("Test accuracy:", test_acc)
-    return val_acc
-
-
-if __name__ == "__main__":
-    # Load data
-    x_train, y_train = LoadXY("data_batch_1")
-    x_val, y_val = LoadXY("data_batch_2")
-    x_test, y_test = LoadXY("test_batch")
-
-    # Preprocessing
-    mean_x = np.mean(x_train)
-    std_x = np.std(x_train)
-    x_train = (x_train - mean_x)/std_x
-    x_val = (x_val - mean_x)/std_x
-    x_test = (x_test - mean_x)/std_x
-
-    # Coarse search
-    l2_params = np.linspace(-7.0, -1.0, num=80)
-    # val_accuracies = []
-    # for l2_param in l2_params:
-    #     val_acc = evaluator(10**l2_param)
-    #     val_accuracies.append(val_acc)
-    #     np.save("l2_search_vals", val_accuracies)
-    val_accuracies = np.load("l2_search_vals.npy")
-    ratio = 10
-    minimum = 50
-    maximum = 75
-    l2_params = [l2_params[i] for i in range(80) if i > minimum and i < maximum]
-    val_accuracies = [val_accuracies[i] for i in range(80) if i > minimum and i < maximum]
-
-    plt.plot(l2_params, val_accuracies)
-    plt.xlabel("l2 regularization")
-    plt.ylabel("Validation Accuracy")
-    plt.ylim(bottom=0.4, top=0.5)
-    plt.title("Uniform Search Results")
-    plt.savefig("figures/l2reg_search_results_2.png")
-    plt.show()
-
-
-#####################################################
-# The file /home/oleguer/Documents/p4/deepstuff/KTH_DeepLearning/Assignment_2/cyclical_lr_good.py contains:
- #####################################################
-import numpy as np
-import sys
-import pathlib
-sys.path.append(str(pathlib.Path(__file__).resolve().parents[1]) + "/Toy-DeepLearning-Framework/")
-sys.path.append(str(pathlib.Path(__file__).resolve().parents[1]) + "/HyperParameter-Optimizer/")
-
-from skopt.space import Real
-from mlp.utils import LoadXY
-from mlp.metrics import Accuracy
-from mlp.models import Sequential
-from mlp.losses import CrossEntropy
-from mlp.layers import Dense, Softmax, Relu
-from mlp.callbacks import MetricTracker, BestModelSaver, LearningRateScheduler
-from util.misc import dict_to_string
-
-from gaussian_process import GaussianProcessSearch
-
-def evaluator(x_train, y_train, x_val, y_val, x_test, y_test, experiment_name="", **kwargs):
-    # Saving directories
-    figure_file = "figures/" + experiment_name + "/" + dict_to_string(kwargs)
-    model_file = "models/" + experiment_name + "/" + dict_to_string(kwargs)
-
-    # Define model
-    model = Sequential(loss=CrossEntropy(), metric=Accuracy())
-    model.add(Dense(nodes=50, input_dim=x_train.shape[0]))
-    model.add(Relu())
-    model.add(Dense(nodes=10, input_dim=50))
-    model.add(Softmax())
-
-    # Pick metaparams
-    batch_size = 100
-    ns = 2*np.floor(x_train.shape[1]/batch_size)
-    iterations = 4*ns  # 2 cycles
-
-    # Define callbacks
-    mt = MetricTracker()  # Stores training evolution info
-    # bms = BestModelSaver(save_dir=None)
-    lrs = LearningRateScheduler(
-        evolution="cyclic", lr_min=1e-5, lr_max=1e-1, ns=ns)  
-    # callbacks = [mt, bms, lrs]
-    callbacks = [mt, lrs]
-
-    # Adjust logarithmic
-    kwargs["l2_reg"] = 10**kwargs["l2_reg"]
-
-    # Fit model
-    model.fit(X=x_train, Y=y_train, X_val=x_val, Y_val=y_val,
-              batch_size=batch_size, epochs=None, iterations=iterations, **kwargs,
-              callbacks=callbacks)
-
-    # Write results    
-    # best_model = bms.get_best_model()
-    test_acc = model.get_metric_loss(x_test, y_test)[0]
-    subtitle = "l2_reg: " + str(kwargs["l2_reg"]) + ", Test Acc: " + str(test_acc)
-    mt.plot_training_progress(show=False, save=True, name=figure_file, subtitle=subtitle)
-
-    # Maximizing value: validation accuracy
-    # val_metric = bms.best_metric
-    val_metric = model.get_metric_loss(x_val, y_val)[0]
-    return val_metric
-
-
-if __name__ == "__main__":
-    # Load data
-    x_train, y_train = LoadXY("data_batch_1")
-    for i in [2, 3, 4, 5]:
-        x, y = LoadXY("data_batch_" + str(i))
-        x_train = np.concatenate((x_train, x), axis=1)
-        y_train = np.concatenate((y_train, y), axis=1)
-    x_val = x_train[:, -5000:]
-    y_val = y_train[:, -5000:]
-    x_train = x_train[:, :-5000]
-    y_train = y_train[:, :-5000]
-    x_test, y_test = LoadXY("test_batch")
-
-    # Preprocessing
-    mean_x = np.mean(x_train)
-    std_x = np.std(x_train)
-    x_train = (x_train - mean_x)/std_x
-    x_val = (x_val - mean_x)/std_x
-    x_test = (x_test - mean_x)/std_x
-
-    fixed_args = {
-        "experiment_name": "l2reg_optimization",
-        "x_train": x_train,
-        "y_train": y_train,
-        "x_val": x_val,
-        "y_val": y_val,
-        "x_test": x_test,
-        "y_test": y_test,
-        "momentum": 0.0,
-        "shuffle_minibatch":False,
-    }
-
-    pathlib.Path(fixed_args["experiment_name"]).mkdir(parents=True, exist_ok=True)
-    l2reg_space = Real(name='l2_reg', low=-7, high=-1)
-    search_space = [l2reg_space]
-
-    gp_search = GaussianProcessSearch(search_space=search_space,
-                                      fixed_space=fixed_args,
-                                      evaluator=evaluator,
-                                      input_file=None,
-                                      output_file=fixed_args["experiment_name"] + '/evaluations.csv')
-    gp_search.init_session()
-    x, y = gp_search.get_maximum(n_calls=15,
-                                 n_random_starts=7,
-                                 noise=0.001,
-                                 verbose=True)
-    print("Max at:", x, "with value:", y)
-
-
-#####################################################
-# The file /home/oleguer/Documents/p4/deepstuff/KTH_DeepLearning/Assignment_2/overfit_test.py contains:
- #####################################################
-import sys, pathlib
-sys.path.append(str(pathlib.Path(__file__).resolve().parents[1]) + "/Toy-DeepLearning-Framework/")
-
-import numpy as np
-from mlp.layers import Dense, Softmax, Relu
-from mlp.losses import CrossEntropy
-from mlp.models import Sequential
-from mlp.metrics import accuracy
-from mlp.utils import LoadXY
-
-np.random.seed(0)
-
-if __name__ == "__main__":
-    # Download & Extract CIFAR-10 Python (https://www.cs.toronto.edu/~kriz/cifar-10-python.tar.gz)
-    # Put it in a Data folder
-
-    # Load data
-    x_train, y_train = LoadXY("data_batch_1")
-    x_val, y_val = LoadXY("data_batch_2")
-    x_test, y_test = LoadXY("test_batch")
-
-    # Preprocessing
-    mean_x = np.mean(x_train)
-    std_x = np.std(x_train)
-    x_train = (x_train - mean_x)/std_x
-    x_val = (x_val - mean_x)/std_x
-    x_test = (x_test - mean_x)/std_x
-
-    # Define model
+    # Load model model
     model = Sequential(loss=CrossEntropy())
-    model.add(Dense(nodes=50, input_dim=x_train.shape[0]))
-    model.add(Relu())
-    model.add(Dense(nodes=10, input_dim=50))
-    model.add(Softmax())
+    # model.load("models/names_test")
+    model.load("models/name_metaparam_search_2/n1-39_n2-33_k1-2_k2-10_batch_size-50")
 
-    # Fit model
-    x_train = x_train[:, 0:100]
-    y_train = y_train[:, 0:100]
-    model.fit(X=x_train, Y=y_train, X_val=x_val, Y_val=y_val,
-                        batch_size=100, epochs=200, lr=0.001, momentum=0.0,
-                        l2_reg=0.0, shuffle_minibatch=False, save_path="models/mlp_overfit_test")
-    model.plot_training_progress(save=True, name="figures/mlp_overfit_test")
-    model.save("models/mlp_overfit_test")
+    y_pred_train = model.predict_classes(x_train)
+    y_pred_val = model.predict_classes(x_val)
+    
+    plot_confusion_matrix(y_pred_train, y_train, classes, "figures/conf_best_model")
+    plot_confusion_matrix(y_pred_val, y_val, classes, "figures/conf_best_model_val")
 
-    # Test model
-    test_acc, test_loss = model.get_classification_metrics(x_test, y_test)
-    print("Test accuracy:", test_acc)
 
 #####################################################
-# The file /home/oleguer/Documents/p4/deepstuff/KTH_DeepLearning/Assignment_2/metaparam_optimization.py contains:
+# The file /home/oleguer/Documents/p4/deepstuff/KTH_DeepLearning/Assignment_3/metaparam_search.py contains:
  #####################################################
 import numpy as np
 import sys
 import pathlib
+from helper import read_names
+
 sys.path.append(str(pathlib.Path(__file__).resolve().parents[1]) + "/Toy-DeepLearning-Framework/")
 sys.path.append(str(pathlib.Path(__file__).resolve().parents[1]) + "/HyperParameter-Optimizer/")
 
@@ -845,241 +915,151 @@ from mlp.utils import LoadXY
 from mlp.metrics import Accuracy
 from mlp.models import Sequential
 from mlp.losses import CrossEntropy
-from mlp.layers import Dense, Softmax, Relu
+from mlp.layers import Conv2D, Dense, Softmax, Relu, Flatten, Dropout, MaxPool2D
 from mlp.callbacks import MetricTracker, BestModelSaver, LearningRateScheduler
 from util.misc import dict_to_string
 
 from gaussian_process import GaussianProcessSearch
 
-def evaluator(x_train, y_train, x_val, y_val, x_test, y_test, experiment_name="", **kwargs):
+def evaluator(x_train, y_train, x_val, y_val, experiment_name="", **kwargs):
     print(kwargs)
     # Saving directories
     figure_file = "figures/" + experiment_name + "/" + dict_to_string(kwargs)
     model_file = "models/" + experiment_name + "/" + dict_to_string(kwargs)
 
+    mt = MetricTracker()  # Stores training evolution info (losses and metrics)
+
     # Define model
-    model = Sequential(loss=CrossEntropy(), metric=Accuracy())
-    model.add(Dense(nodes=kwargs["hidden_units"], input_dim=x_train.shape[0]))
-    model.add(Relu())
-    model.add(Dense(nodes=10, input_dim=kwargs["hidden_units"]))
-    model.add(Softmax())
+    d = x_train.shape[0]
+    n1 = kwargs["n1"]  # Filters of first Conv2D
+    k1 = kwargs["k1"]  # First kernel y size
+    n2 = kwargs["n2"]  # Filters of second Conv2D
+    k2 = kwargs["k2"]  # Second kernel y size
+    batch_size = kwargs["batch_size"]
 
-    # Pick metaparams
-    batch_size = 100
-    ns = kwargs["ns"]
-    iterations = kwargs["number_of_cycles"]*ns
-
-    # Define callbacks
-    mt = MetricTracker()  # Stores training evolution info
-    bms = BestModelSaver(save_dir=None)
-    lrs = LearningRateScheduler(
-        evolution="cyclic", lr_min=1e-5, lr_max=1e-1, ns=ns)  
-    callbacks = [mt, bms, lrs]
-    # callbacks = [mt, lrs]
-
-    # Adjust logarithmic
-    kwargs["l2_reg"] = 10**kwargs["l2_reg"]
-
-    # Fit model
-    model.fit(X=x_train, Y=y_train, X_val=x_val, Y_val=y_val,
-              batch_size=batch_size, epochs=None, iterations=iterations,
-              callbacks=callbacks, **kwargs)
+    try:
+        # Define model
+        model = Sequential(loss=CrossEntropy(class_count=None), metric=Accuracy())
+        model.add(Conv2D(num_filters=n1, kernel_shape=(d, k1), input_shape=x_train.shape[:-1]))
+        model.add(Relu())
+        model.add(Conv2D(num_filters=n2, kernel_shape=(1, k2)))
+        model.add(Relu())
+        model.add(Flatten())
+        model.add(Dense(nodes=y_train.shape[0]))
+        model.add(Softmax())
+        # Fit model
+        model.fit(X=x_train, Y=y_train, X_val=x_val, Y_val=y_val,
+                batch_size=batch_size, epochs=1000, lr = 1e-2, momentum=0.8, l2_reg=0.001,
+                compensate=True, callbacks=[mt])
+    except Exception as e:
+        print(e)
+        return -1  # If configuration impossible
+    model.save(model_file)
 
     # Write results    
-    best_model = bms.get_best_model()
-    test_acc = best_model.get_metric_loss(x_test, y_test)[0]
-    
-    l2_str = str("{:.2E}".format(Decimal(kwargs["l2_reg"])))
-    ns_str = str(ns)
-    nc_str = str(kwargs["number_of_cycles"])
-    h_units_str = str(kwargs["hidden_units"])
-    m_str = str("{:.2E}".format(Decimal(kwargs["momentum"])))
-    test_acc_str = str("{:.2E}".format(Decimal(test_acc)))
-
-    subtitle = "l2reg:" + l2_str + ", ns:" + ns_str + ", nc:" + nc_str +\
-        ", units:" + h_units_str + ", moment:" + m_str + ", Test Acc: " + test_acc_str
+    n1 = str(n1)
+    n2 = str(n2)
+    k1 = str(k1)
+    k2 = str(k2)
+    batch_size = str(batch_size)
+    subtitle = "n1:" + n1 + ", n2:" + n2 + ", k1:" + k1 + ", k2:" + k1 +\
+               ", batch_size:" + batch_size
     mt.plot_training_progress(show=False, save=True, name=figure_file, subtitle=subtitle)
 
     # Maximizing value: validation accuracy
-    val_metric = bms.best_metric
-    # val_metric = model.get_metric_loss(x_val, y_val)[0]
-    return val_metric
+    return model.val_metric
 
 
 if __name__ == "__main__":
     # Load data
-    x_train, y_train = LoadXY("data_batch_1")
-    for i in [2, 3, 4, 5]:
-        x, y = LoadXY("data_batch_" + str(i))
-        x_train = np.concatenate((x_train, x), axis=1)
-        y_train = np.concatenate((y_train, y), axis=1)
-    x_val = x_train[:, -1000:]
-    y_val = y_train[:, -1000:]
-    x_train = x_train[:, :-1000]
-    y_train = y_train[:, :-1000]
-    x_test, y_test = LoadXY("test_batch")
-
-    # Preprocessing
-    mean_x = np.mean(x_train)
-    std_x = np.std(x_train)
-    x_train = (x_train - mean_x)/std_x
-    x_val = (x_val - mean_x)/std_x
-    x_test = (x_test - mean_x)/std_x
+    x_train, y_train, x_val, y_val, _, _ = read_names(n_train=-1)
 
     fixed_args = {
-        "experiment_name": "metaparam_search",
+        "experiment_name": "name_metaparam_search_2",
         "x_train": x_train,
         "y_train": y_train,
         "x_val": x_val,
         "y_val": y_val,
-        "x_test": x_test,
-        "y_test": y_test,
-        "shuffle_minibatch":True,
     }
-
     pathlib.Path(fixed_args["experiment_name"]).mkdir(parents=True, exist_ok=True)
     
     # Search space
-    l2reg_space = Real(name='l2_reg', low=-5, high=-1)
-    cycles_length = Integer(name='ns', low=400, high=1200)
-    number_of_cycles = Integer(name="number_of_cycles", low=2, high=6)
-    hidden_units = Integer(name="hidden_units", low=50, high=200)
-    momentum = Real(name="momentum", low=0.2, high=0.95)
-    search_space = [l2reg_space, cycles_length, number_of_cycles, hidden_units, momentum]
+    n1 = Integer(name='n1', low=10, high=40)
+    n2 = Integer(name='n2', low=10, high=40)
+    k1 = Integer(name='k1', low=2, high=10)
+    k2 = Integer(name='k2', low=2, high=10)
+    batch_size = Integer(name="batch_size", low=50, high=300)
+    search_space = [n1, n2, k1, k2, batch_size]
 
     gp_search = GaussianProcessSearch(search_space=search_space,
                                       fixed_space=fixed_args,
                                       evaluator=evaluator,
-                                      input_file=None,
+                                      input_file="name_metaparam_search" + '/evaluations.csv',
                                       output_file=fixed_args["experiment_name"] + '/evaluations.csv')
     gp_search.init_session()
-    x, y = gp_search.get_maximum(n_calls=80,
-                                 n_random_starts=20,
+    x, y = gp_search.get_maximum(n_calls = 12,
+                                 n_random_starts=0,
                                  noise=0.001,
                                  verbose=True)
     print("Max at:", x, "with value:", y)
 
 
 #####################################################
-# The file /home/oleguer/Documents/p4/deepstuff/KTH_DeepLearning/Assignment_2/check_gradients.py contains:
+# The file /home/oleguer/Documents/p4/deepstuff/KTH_DeepLearning/Assignment_3/helper.py contains:
  #####################################################
-# Add path to Toy-DeepLearning-Framework
-import sys, pathlib
-sys.path.append(str(pathlib.Path(__file__).resolve().parents[1]) + "/Toy-DeepLearning-Framework/")
-
 import numpy as np
-import copy
-import time
-from tqdm import tqdm
 
-from mlp.layers import Dense, Softmax, Relu
-from mlp.losses import CrossEntropy
-from mlp.models import Sequential
-from mlp.metrics import accuracy
-from mlp.utils import LoadXY, prob_to_class
-from mpo.metaparamoptimizer import MetaParamOptimizer
-from util.misc import dict_to_string
+def load_idxfile(filename):
 
-
-def evaluate_cost(W, x, y_real, l2_reg):
-    model.layers[0].weights = W
-    y_pred = model.predict(x)
-    c = model.cost(y_pred, y_real, l2_reg)
-    return c
-
-def ComputeGradsNum(x, y_real, model, l2_reg, h):
-    """ Converted from matlab code """
-    print("Computing numerical gradients...")
-    W = copy.deepcopy(model.layers[0].weights)
-
-    no 	= 	W.shape[0]
-    d 	= 	x.shape[0]
-
-    # c = evaluate_cost(W, x, y_real)
-    grad_W = np.zeros(W.shape)
-    for i in tqdm(range(W.shape[0])):
-        for j in range(W.shape[1]):
-            W_try = np.matrix(W)
-            W_try[i,j] -= h
-            c1 = evaluate_cost(W_try, x, y_real, l2_reg)
-            
-            W_try = np.matrix(W)
-            W_try[i,j] += h
-            c2 = evaluate_cost(W_try, x, y_real, l2_reg)
-            
-            grad_W[i,j] = (c2-c1) / (2*h)
-    return grad_W
-
-if __name__ == "__main__":
-    x_train, y_train = LoadXY("data_batch_1")
-    x_val, y_val = LoadXY("data_batch_2")
-    x_test, y_test = LoadXY("test_batch")
-
-    # Preprocessing
-    mean_x = np.mean(x_train)
-    std_x = np.std(x_train)
-    x_train = (x_train - mean_x)/std_x
-    x_val = (x_val - mean_x)/std_x
-    x_test = (x_test - mean_x)/std_x
-
-    x = x_train[:, 0:20]
-    y = y_train[:, 0:20]
-    reg = 0.1
-
-    # Define model
-    model = Sequential(loss=CrossEntropy())
-    model.add(Dense(nodes=50, input_dim=x_train.shape[0]))
-    model.add(Relu())
-    model.add(Dense(nodes=10, input_dim=50))
-    model.add(Softmax())
-
-    anal_time = time.time()
-    model.fit(x, y, batch_size=None, epochs=1, lr=0, # 0 lr will not change weights
-                    momentum=0, l2_reg=reg)
-    analytical_grad = model.layers[0].gradient
-    anal_time = anal_time - time.time()
-
-    # Get Numerical gradient
-    num_time = time.time()
-    numerical_grad = ComputeGradsNum(x, y, model, l2_reg=reg, h=1e-5)
-    num_time = num_time - time.time()
-
-    _EPS = 0.0000001
-    denom = np.abs(analytical_grad) + np.abs(numerical_grad)
-    av_error = np.average(
-            np.divide(
-                np.abs(analytical_grad-numerical_grad),
-                np.multiply(denom, (denom > _EPS)) + np.multiply(_EPS*np.ones(denom.shape), (denom <= _EPS))))
-    max_error = np.max(
-            np.divide(
-                np.abs(analytical_grad-numerical_grad),
-                np.multiply(denom, (denom > _EPS)) + np.multiply(_EPS*np.ones(denom.shape), (denom <= _EPS))))
+    """
+    Load idx file format. For more information : http://yann.lecun.com/exdb/mnist/ 
+    """
+    import struct
     
-    print("Averaged Element-Wise Relative Error:", av_error*100, "%")
-    print("Max Element-Wise Relative Error:", max_error*100, "%")
-    print("Speedup:", (num_time/anal_time))
+    filename = "data/" + filename
+    with open(filename,'rb') as _file:
+        if ord(_file.read(1)) != 0 or ord(_file.read(1)) != 0 :
+           raise Exception('Invalid idx file: unexpected magic number!')
+        dtype,ndim = ord(_file.read(1)),ord(_file.read(1))
+        shape = [struct.unpack(">I", _file.read(4))[0] for _ in range(ndim)]
+        data = np.fromfile(_file, dtype=np.dtype(np.uint8).newbyteorder('>')).reshape(shape)
+    return data
+    
+def read_mnist(dim=[28,28],n_train=50000, n_val=10000,n_test=1000):
 
+    """
+    Read mnist train and test data. Images are normalized to be in range [0,1]. Labels are one-hot coded.
+    """    
+    import scipy.misc
 
+    train_imgs = load_idxfile("train-images-idx3-ubyte")
+    train_imgs = train_imgs / 255.
+    train_imgs = train_imgs.reshape(-1,dim[0]*dim[1])
 
-#####################################################
-# The file /home/oleguer/Documents/p4/deepstuff/KTH_DeepLearning/Assignment_2/l2_reg_good.py contains:
- #####################################################
-import sys, pathlib
-sys.path.append(str(pathlib.Path(__file__).resolve().parents[1]) + "/Toy-DeepLearning-Framework/")
+    train_lbls = load_idxfile("train-labels-idx1-ubyte")
+    train_lbls_1hot = np.zeros((len(train_lbls),10),dtype=np.float32)
+    train_lbls_1hot[range(len(train_lbls)),train_lbls] = 1.
 
-import numpy as np
-from mlp.callbacks import MetricTracker, BestModelSaver, LearningRateScheduler
-from mlp.layers import Dense, Softmax, Relu, Dropout
-from mlp.losses import CrossEntropy
-from mlp.models import Sequential
-from mlp.metrics import Accuracy
-from mlp.utils import LoadXY
-import matplotlib.pyplot as plt
+    test_imgs = load_idxfile("t10k-images-idx3-ubyte")
+    test_imgs = test_imgs / 255.
+    test_imgs = test_imgs.reshape(-1,dim[0]*dim[1])
 
-np.random.seed(1)
+    test_lbls = load_idxfile("t10k-labels-idx1-ubyte")
+    test_lbls_1hot = np.zeros((len(test_lbls),10),dtype=np.float32)
+    test_lbls_1hot[range(len(test_lbls)),test_lbls] = 1.
 
+    def rs(imgs):
+        imgs = (imgs.T).reshape((dim[0], dim[1], imgs.shape[0]), order='C')
+        return np.expand_dims(imgs, axis=2).astype(float)  # h, w, c, n
+    return rs(train_imgs[:n_train]),train_lbls_1hot[:n_train].T.astype(float),\
+           rs(train_imgs[n_train:n_train+n_val]),train_lbls_1hot[n_train:n_train+n_val].T.astype(float),\
+           rs(test_imgs[:n_test]),test_lbls_1hot[:n_test].T.astype(float)
 
-if __name__ == "__main__":
+def read_cifar_10(n_train=None, n_val=None, n_test=None):
+    import sys, pathlib
+    sys.path.append(str(pathlib.Path(__file__).resolve().parents[1]) + "/Toy-DeepLearning-Framework/")
+    from mlp.utils import LoadXY
+
     # Load data
     x_train, y_train = LoadXY("data_batch_1")
     for i in [2, 3, 4, 5]:
@@ -1092,6 +1072,16 @@ if __name__ == "__main__":
     y_train = y_train[:, :-1000]
     x_test, y_test = LoadXY("test_batch")
 
+    if n_train is not None:
+        x_train = x_train[..., 0:n_train]
+        y_train = y_train[..., 0:n_train]
+    if n_val is not None:
+        x_val = x_val[..., 0:n_val]
+        y_val = y_val[..., 0:n_val]
+    if n_test is not None:
+        x_test = x_test[..., 0:n_test]
+        y_test = y_test[..., 0:n_test]
+
     # Preprocessing
     mean_x = np.mean(x_train)
     std_x = np.std(x_train)
@@ -1099,181 +1089,237 @@ if __name__ == "__main__":
     x_val = (x_val - mean_x)/std_x
     x_test = (x_test - mean_x)/std_x
 
-    # Define model
-    model = Sequential(loss=CrossEntropy(), metric=Accuracy())
-    model.add(Dense(nodes=800, input_dim=x_train.shape[0]))
-    model.add(Relu())
-    model.add(Dense(nodes=10, input_dim=800))
-    model.add(Softmax())
+    # reshaped_train = np.zeros((32, 32, 3, x_train.shape[-1]))
+    # for i in range(x_train.shape[-1]):
+    #     flatted_image = np.array(x_train[..., i])
+    #     image = np.reshape(flatted_image,  (32, 32, 3), order='F')
+    #     cv2.imshow("image", image)
+    #     cv2.waitKey()
 
-    ns = 800
+    x_train = np.reshape(np.array(x_train), (32, 32, 3, x_train.shape[-1]), order='F')
+    x_val = np.reshape(np.array(x_val), (32, 32, 3, x_val.shape[-1]), order='F')
+    x_test = np.reshape(np.array(x_test), (32, 32, 3, x_test.shape[-1]), order='F')
 
-    # Define callbacks
-    mt = MetricTracker()  # Stores training evolution info
-    lrs = LearningRateScheduler(evolution="cyclic", lr_min=1e-5, lr_max=1e-1, ns=ns)  # Modifies lr while training
-    callbacks = [mt, lrs]
+    return x_train.astype(float), y_train.astype(float), x_val.astype(float), y_val.astype(float), x_test.astype(float), y_test.astype(float)
 
-    # Fit model
-    iterations = 6*ns
-    model.fit(X=x_train, Y=y_train, X_val=x_val, Y_val=y_val,
-            batch_size=100, iterations=iterations,
-            l2_reg=10**-1.85, shuffle_minibatch=True,
-            callbacks=callbacks)
-    model.save("models/l2reg_optimization_good")
+def read_names(n_train=-1):
+    def read_file(filepath="data/names/ascii_names.txt"):
+        names = []
+        labels = []
+        with open(filepath) as fp:
+            line = fp.readline()
+            while line:
+                line = line.replace("  ", " ")
+                # print(line)
+                names.append(line.split(" ")[0].lower())
+                labels.append(int(line.split(" ")[-1]))
+                line = fp.readline()
+        return names, labels
+
+    def encode_names(names):
+        n_len = -1
+        for name in names:
+            n_len = max(n_len, len(name))
+        x = np.zeros((ord('z')-ord('a')+1, n_len, len(names)))
+        for n in range(len(names)):
+            for i, char in enumerate(names[n]):
+                if ord(char) > ord('z') or ord(char) < ord('a'):
+                    continue
+                x[ord(char)-ord('a')][i][n] = 1
+        return np.expand_dims(x, axis=2).astype(float)        
+
+    def get_one_hot_labels(labels):
+        labels = np.array(labels)
+        one_hot_labels = np.zeros((labels.size, np.max(labels)))
+        one_hot_labels[np.arange(labels.size), labels-1] = 1
+        return one_hot_labels.T
     
-    # Test model
-    val_acc = model.get_metric_loss(x_val, y_val)[0]
-    test_acc = model.get_metric_loss(x_test, y_test)[0]
-    subtitle = "Test acc: " + str(test_acc)
-    mt.plot_training_progress(show=True, save=True, name="figures/l2reg_optimization/good", subtitle=subtitle)
-    print("Val accuracy:", val_acc)
-    print("Test accuracy:", test_acc)
+    names, labels = read_file()
+    x = encode_names(names)
+    y = get_one_hot_labels(labels)
+
+    val_indxs = []
+    with open("data/names/Validation_Inds.txt") as fp:
+        val_indxs = [int(val) for val in fp.readline().split(" ")]
+
+    indx = list(range(len(names)))
+    np.random.shuffle(indx)
+    for val in val_indxs:
+        indx.remove(val)
+
+    return x[..., indx[:n_train]], y[..., indx[:n_train]],\
+           x[..., val_indxs], y[..., val_indxs],\
+           None, None
+
+
+def read_names_test(n_train=-1):
+    def read_file(filepath="data/names/test.txt"):
+        names = []
+        labels = []
+        with open(filepath) as fp:
+            line = fp.readline()
+            while line:
+                line = line.replace("  ", " ")
+                # print(line)
+                names.append(line.split(" ")[0].lower())
+                labels.append(int(line.split(" ")[-1]))
+                line = fp.readline()
+        return names, labels
+
+    def encode_names(names):
+        n_len = 19
+        x = np.zeros((ord('z')-ord('a')+1, n_len, len(names)))
+        for n in range(len(names)):
+            for i, char in enumerate(names[n]):
+                if ord(char) > ord('z') or ord(char) < ord('a'):
+                    continue
+                x[ord(char)-ord('a')][i][n] = 1
+        return np.expand_dims(x, axis=2).astype(float)        
+
+    def get_one_hot_labels(labels):
+        labels = np.array(labels)
+        one_hot_labels = np.zeros((labels.size, np.max(labels)))
+        one_hot_labels[np.arange(labels.size), labels-1] = 1
+        return one_hot_labels.T
+    
+    names, labels = read_file()
+    x = encode_names(names)
+    y = get_one_hot_labels(labels)
+    return x, y, names
+
+def read_names_countries():
+    return ["Arabic", "Chinese", "Czech", "Dutch", "English", "French", "German",\
+            "Greek", "Irish", "Italian", "Japanese", "Korean", "Polish", "Portuguese",\
+            "Russian", "Scottish", "Spanish", "Vietnamese"]
+
+#####################################################
+# The file /home/oleguer/Documents/p4/deepstuff/KTH_DeepLearning/Assignment_3/test.py contains:
+ #####################################################
+import numpy as np
+import sys, pathlib
+import cv2
+
+sys.path.append(str(pathlib.Path(__file__).resolve().parents[1]) + "/Toy-DeepLearning-Framework/")
+
+from mlp.callbacks import MetricTracker
+
+mt = MetricTracker()
+mt.metric_name = "Accuracy"
+mt.load("models/tracker")
+mt.plot_training_progress()
 
 
 #####################################################
-# The file /home/oleguer/Documents/p4/deepstuff/KTH_DeepLearning/Assignment_2/lr_ranges.py contains:
+# The file /home/oleguer/Documents/p4/deepstuff/KTH_DeepLearning/Assignment_3/mnist.py contains:
  #####################################################
-import sys, pathlib
-sys.path.append(str(pathlib.Path(__file__).resolve().parents[1]) + "/Toy-DeepLearning-Framework/")
 
 import numpy as np
-from mlp.callbacks import MetricTracker, BestModelSaver, LearningRateScheduler
-from mlp.layers import Dense, Softmax, Relu, Dropout
-from mlp.losses import CrossEntropy
-from mlp.models import Sequential
+import sys, pathlib
+from helper import read_mnist
+import cv2
+sys.path.append(str(pathlib.Path(__file__).resolve().parents[1]) + "/Toy-DeepLearning-Framework/")
+
 from mlp.metrics import Accuracy
-from mlp.utils import LoadXY
-import matplotlib.pyplot as plt
+from mlp.models import Sequential
+from mlp.losses import CrossEntropy
+from mlp.layers import Conv2D, Dense, Softmax, Relu, Flatten, Dropout, MaxPool2D
+from mlp.callbacks import MetricTracker, BestModelSaver, LearningRateScheduler
+
+if __name__ == "__main__":
+    # Load data
+    x_train, y_train, x_val, y_val, x_test, y_test = read_mnist(n_train=200, n_val=200, n_test=2)
+
+    # Define callbacks
+    mt = MetricTracker()  # Stores training evolution info (losses and metrics)
+    # lrs = LearningRateScheduler(evolution="linear", lr_min=1e-3, lr_max=9e-1)
+    # lrs = LearningRateScheduler(evolution="constant", lr_min=1e-3, lr_max=9e-1)
+    # callbacks = [mt, lrs]
+    callbacks = [mt]
+
+    # Define model
+    model = Sequential(loss=CrossEntropy(), metric=Accuracy())
+    model.add(Conv2D(num_filters=64, kernel_shape=(4, 4), input_shape=(28, 28, 1)))
+    model.add(Relu())
+    model.add(MaxPool2D(kernel_shape=(2, 2)))
+    # model.add(Conv2D(num_filters=32, kernel_shape=(3, 3)))
+    # model.add(Relu())
+    model.add(Flatten())
+    # model.add(Flatten(input_shape=(28, 28, 1)))
+    model.add(Dense(nodes=400))
+    model.add(Relu())
+    model.add(Dense(nodes=10))
+    model.add(Softmax())
+
+    # for filt in model.layers[0].filters:
+    #     print(filt)
+    # y_pred_prob = model.predict(x_train)
+    # print(y_pred_prob)
+
+    # Fit model
+    model.fit(X=x_train, Y=y_train, X_val=x_val, Y_val=y_val,
+              batch_size=100, epochs=200, lr = 1e-2, momentum=0.5, callbacks=callbacks)
+    model.save("models/mnist_test_conv_2")
+    # model.layers[0].show_filters()
+
+    # for filt in model.layers[0].filters:
+    #     print(filt)
+
+    # print(model.layers[0].biases)
+
+    mt.plot_training_progress()
+    y_pred_prob = model.predict(x_train)
+    # # # model.pred
+    # print(y_train)
+    # print(np.round(y_pred_prob, decimals=2))
+
+
+#####################################################
+# The file /home/oleguer/Documents/p4/deepstuff/KTH_DeepLearning/Assignment_3/test_name_model.py contains:
+ #####################################################
+
+import numpy as np
+import sys, pathlib
+from helper import read_names, read_names_countries, read_names_test
+import cv2
+sys.path.append(str(pathlib.Path(__file__).resolve().parents[1]) + "/Toy-DeepLearning-Framework/")
+
+from mlp.metrics import Accuracy
+from mlp.models import Sequential
+from mlp.losses import CrossEntropy
+from mlp.layers import Conv2D, Dense, Softmax, Relu, Flatten, Dropout, MaxPool2D
+from mlp.callbacks import MetricTracker, BestModelSaver, LearningRateScheduler
+from mlp.utils import plot_confusion_matrix
 
 np.random.seed(1)
 
 if __name__ == "__main__":
     # Load data
-    x_train, y_train = LoadXY("data_batch_1")
-    x_val, y_val = LoadXY("data_batch_2")
-    x_test, y_test = LoadXY("test_batch")
+    x_test, y_test, names = read_names_test()
+    classes = read_names_countries()
 
-    # Preprocessing
-    mean_x = np.mean(x_train)
-    std_x = np.std(x_train)
-    x_train = (x_train - mean_x)/std_x
-    x_val = (x_val - mean_x)/std_x
-    x_test = (x_test - mean_x)/std_x
+    print(x_test.shape)
 
-    # Define model
-    model = Sequential(loss=CrossEntropy(), metric=Accuracy())
-    model.add(Dense(nodes=50, input_dim=x_train.shape[0]))
-    model.add(Relu())
-    model.add(Dense(nodes=10, input_dim=50))
-    model.add(Softmax())
+    # Load model model
+    model = Sequential(loss=CrossEntropy())
+    model.load("models/names_test")
+    # model.load("models/names_no_compensation")
 
-    ns = 800
-
-    # Define callbacks
-    mt = MetricTracker()  # Stores training evolution info
-    lrs = LearningRateScheduler(evolution="cyclic", lr_min=1e-7, lr_max=1e-2, ns=ns)  # Modifies lr while training
-    callbacks = [mt, lrs]
-
-    # Fit model
-    iterations = 6*ns
-    model.fit(X=x_train, Y=y_train, X_val=x_val, Y_val=y_val,
-            batch_size=100, iterations=iterations,
-            l2_reg=10**-1.85, shuffle_minibatch=True,
-            callbacks=callbacks)
-    # model.save("models/yes_dropout_test")
+    y_pred_prob_test = model.predict(x_test)
+    y_pred_test = model.predict_classes(x_test)
+    print(y_pred_prob_test)
+    print(y_test)
     
-    # # Test model
-    val_acc = model.get_metric_loss(x_val, y_val)[0]
-    test_acc = model.get_metric_loss(x_test, y_test)[0]
-    subtitle = "Test acc: " + str(test_acc)
-    mt.plot_training_progress(show=True, save=True, name="figures/lr_limits/final_train", subtitle=subtitle)
-    # mt.save("limits_test")
-    # lrs = np.load("limits_test_lr.npy")
-    # plt.plot(lrs)
-    # plt.show()
+    plot_confusion_matrix(y_pred_test, y_test, classes, "figures/conf_test")
 
-    # mt.plot_acc_vs_lr(show=True, save=True, name="figures/lr_limits/lr_test", subtitle="")
-
-
-#####################################################
-# The file /home/oleguer/Documents/p4/deepstuff/KTH_DeepLearning/Assignment_2/lr_search_plot.py contains:
- #####################################################
-import pandas as pd
-import matplotlib.pyplot as plt
-import numpy as np
-
-df = pd.read_csv("l2reg_optimization/evaluations.csv")
-
-lr = df[["l2_reg"]].to_numpy()
-values = df[["value"]].to_numpy()
-
-plt.scatter(lr, values)
-plt.xlabel("l2 regularization")
-plt.ylabel("Top Validation Accuracy")
-plt.title("Gaussian Process Regression Optimization Evaluations")
-plt.show()
-
-#####################################################
-# The file /home/oleguer/Documents/p4/deepstuff/KTH_DeepLearning/Assignment_2/dropout_test.py contains:
- #####################################################
-import sys, pathlib
-sys.path.append(str(pathlib.Path(__file__).resolve().parents[1]) + "/Toy-DeepLearning-Framework/")
-
-import numpy as np
-from mlp.callbacks import MetricTracker, BestModelSaver, LearningRateScheduler
-from mlp.layers import Dense, Softmax, Relu, Dropout
-from mlp.losses import CrossEntropy
-from mlp.models import Sequential
-from mlp.metrics import Accuracy
-from mlp.utils import LoadXY
-
-np.random.seed(1)
-
-if __name__ == "__main__":
-    # Load data
-    x_train, y_train = LoadXY("data_batch_1")
-    x_val, y_val = LoadXY("data_batch_2")
-    x_test, y_test = LoadXY("test_batch")
-
-    # Preprocessing
-    mean_x = np.mean(x_train)
-    std_x = np.std(x_train)
-    x_train = (x_train - mean_x)/std_x
-    x_val = (x_val - mean_x)/std_x
-    x_test = (x_test - mean_x)/std_x
-
-    # Define model
-    model = Sequential(loss=CrossEntropy(), metric=Accuracy())
-    model.add(Dense(nodes=800, input_dim=x_train.shape[0]))
-    model.add(Relu())
-    model.add(Dropout(ones_ratio=0.50))
-    model.add(Dense(nodes=10, input_dim=800))
-    model.add(Softmax())
-
-    ns = 500
-
-    # Define callbacks
-    mt = MetricTracker()  # Stores training evolution info
-    # bms = BestModelSaver(save_dir=None)  # Saves model with highest val_metric
-    lrs = LearningRateScheduler(evolution="cyclic", lr_min=1e-3, lr_max=1e-1, ns=ns)  # Modifies lr while training
-    # callbacks = [mt, bms, lrs]
-    callbacks = [mt, lrs]
-
-    # Fit model
-    iterations = 4*ns
-    model.fit(X=x_train, Y=y_train, X_val=x_val, Y_val=y_val,
-            batch_size=100, iterations=iterations, momentum=0.89,
-            l2_reg=1e-5, shuffle_minibatch=True,
-            callbacks=callbacks)
-    model.save("models/yes_dropout_test")
-    
-    # Test model
-    # best_model = bms.get_best_model()
-    # test_acc, test_loss = best_model.get_metric_loss(x_test, y_test)
-    # subtitle = "No Dropout, Test acc: " + test_acc
-    subtitle = ""
-    mt.plot_training_progress(show=True, save=True, name="figures/test_dropout_test", subtitle=subtitle)
-    # print("Test accuracy:", test_acc)
+    import matplotlib.pyplot as plt
+    plt.title("Prediction Vectors")      
+    pos = plt.imshow(y_pred_prob_test.T)
+    plt.xticks(range(len(classes)), classes, rotation=45, ha='right')
+    plt.yticks(range(len(names)), names)
+    # plt.xticks(rotation=45, ha='right')
+    plt.colorbar(pos)
+    plt.savefig("figures/prob_vector_test")
+    plt.show()
 
 #####################################################
 # The file /home/oleguer/Documents/p4/deepstuff/KTH_DeepLearning/joint_code.py contains:
@@ -1801,321 +1847,391 @@ class MetaParamOptimizer:
         return dictionaries
 
 #####################################################
-# The file /home/oleguer/Documents/p4/deepstuff/KTH_DeepLearning/Assignment_2/cyclical_lr_test.py contains:
+# The file /home/oleguer/Documents/p4/deepstuff/KTH_DeepLearning/Assignment_3/overfit_test.py contains:
  #####################################################
+
+import numpy as np
 import sys, pathlib
+from helper import read_mnist
+import cv2
+sys.path.append(str(pathlib.Path(__file__).resolve().parents[1]) + "/Toy-DeepLearning-Framework/")
+
+from mlp.metrics import Accuracy
+from mlp.models import Sequential
+from mlp.losses import CrossEntropy
+from mlp.layers import Conv2D, Dense, Softmax, Relu, Flatten, Dropout, MaxPool2D
+from mlp.callbacks import MetricTracker, BestModelSaver, LearningRateScheduler
+
+if __name__ == "__main__":
+    # Load data
+    x_train, y_train, x_val, y_val, x_test, y_test = read_mnist(n_train=200, n_val=200, n_test=2)
+
+    # Define callbacks
+    mt = MetricTracker()  # Stores training evolution info (losses and metrics)
+    # lrs = LearningRateScheduler(evolution="linear", lr_min=1e-3, lr_max=9e-1)
+    # lrs = LearningRateScheduler(evolution="constant", lr_min=1e-3, lr_max=9e-1)
+    # callbacks = [mt, lrs]
+    callbacks = [mt]
+
+    # Define model
+    model = Sequential(loss=CrossEntropy(), metric=Accuracy())
+    model.add(Conv2D(num_filters=64, kernel_shape=(4, 4), input_shape=(28, 28, 1)))
+    model.add(Relu())
+    model.add(MaxPool2D(kernel_shape=(2, 2)))
+    model.add(Flatten())
+    model.add(Dense(nodes=400))
+    model.add(Relu())
+    model.add(Dense(nodes=10))
+    model.add(Softmax())
+
+    # Fit model
+    model.fit(X=x_train, Y=y_train, X_val=x_val, Y_val=y_val,
+              batch_size=100, epochs=200, lr = 1e-2, momentum=0.5, callbacks=callbacks)
+    model.save("models/mnist_test_conv_2")
+
+    mt.plot_training_progress()
+    y_pred_prob = model.predict(x_train)
+
+#####################################################
+# The file /home/oleguer/Documents/p4/deepstuff/KTH_DeepLearning/Assignment_3/check_gradients.py contains:
+ #####################################################
+
+import numpy as np
+import sys, pathlib
+from helper import read_mnist, read_cifar_10, read_names
+import cv2
 sys.path.append(str(pathlib.Path(__file__).resolve().parents[1]) + "/Toy-DeepLearning-Framework/")
 
 import numpy as np
-from mlp.callbacks import MetricTracker, BestModelSaver, LearningRateScheduler
-from mlp.layers import Dense, Softmax, Relu
-from mlp.losses import CrossEntropy
-from mlp.models import Sequential
-from mlp.metrics import Accuracy
+import copy
+import time
+from tqdm import tqdm
+
 from mlp.utils import LoadXY
+from mlp.metrics import Accuracy
+from mlp.models import Sequential
+from mlp.losses import CrossEntropy
+from mlp.layers import Conv2D, Dense, Softmax, Relu, Flatten, MaxPool2D
+from mlp.callbacks import MetricTracker, BestModelSaver, LearningRateScheduler
+
+np.random.seed(1)
+
+def evaluate_cost_W(W, x, y_real, l2_reg, filter_id):
+    model.layers[0].filters[filter_id] = W
+    y_pred = model.predict(x)
+    c = model.cost(y_pred, y_real, l2_reg)
+    return c
+
+def evaluate_cost_b(W, x, y_real, l2_reg, bias_id):
+    model.layers[0].biases[bias_id] = W
+    y_pred = model.predict(x)
+    c = model.cost(y_pred, y_real, l2_reg)
+    return c
+
+def ComputeGradsNum(x, y_real, model, l2_reg, h):
+    """ Converted from matlab code """
+    print("Computing numerical gradients...")
+
+    grads_w = []
+    for filter_id, filt in enumerate(model.layers[0].filters):
+        W = copy.deepcopy(filt)  # Compute W
+        grad_W = np.zeros(W.shape)
+        for i in tqdm(range(W.shape[0])):
+            for j in range(W.shape[1]):
+                for c in range(W.shape[2]):
+                    W_try = np.array(W)
+                    # print(W_try.shape)
+                    W_try[i,j,c] -= h
+                    c1 = evaluate_cost_W(W_try, x, y_real, l2_reg, filter_id)
+                    
+                    W_try = np.array(W)
+                    W_try[i,j,c] += h
+                    c2 = evaluate_cost_W(W_try, x, y_real, l2_reg, filter_id)
+                    
+                    grad_W[i,j,c] = (c2-c1) / (2*h)
+
+                    model.layers[0].filters[filter_id] = W  # Reset it
+
+        grads_w.append(grad_W)
+
+    grads_b = []
+    for bias_id, bias in enumerate(model.layers[0].biases):
+        b_try = copy.deepcopy(bias) - h
+        c1 = evaluate_cost_b(b_try, x, y_real, l2_reg, bias_id)
+        
+        b_try = copy.deepcopy(bias) + h
+        c2 = evaluate_cost_b(b_try, x, y_real, l2_reg, bias_id)
+        
+        grad_b = (c2-c1) / (2*h)
+        model.layers[0].biases[bias_id] = bias  # Reset it
+
+        grads_b.append(grad_b)
+    return grads_w, grads_b
+
+if __name__ == "__main__":
+    x_train, y_train, x_val, y_val, x_test, y_test = read_cifar_10(n_train=3, n_val=5, n_test=2)
+    # x_train, y_train, x_val, y_val, x_test, y_test = read_mnist(n_train=2, n_val=5, n_test=2)
+    # x_train, y_train, x_val, y_val, x_test, y_test = read_names(n_train=500)
+
+    class_sum = np.sum(y_train, axis=1)*y_train.shape[0]
+    class_count = np.reciprocal(class_sum, where=abs(class_sum) > 0)
+
+    print(class_count)
+
+    print(type(x_train[0, 0, 0]))
+
+    # Define model
+    model = Sequential(loss=CrossEntropy(), metric=Accuracy())
+    model.add(Conv2D(num_filters=2, kernel_shape=(4, 4), stride=3, dilation_rate=2, input_shape=x_train.shape[0:-1]))
+    model.add(Relu())
+    model.add(MaxPool2D((2, 2), stride=3))
+    model.add(Flatten())
+    model.add(Dense(nodes=y_train.shape[0]))
+    model.add(Relu())
+    model.add(Softmax())
+
+    print(np.min(np.abs(model.layers[0].filters)))
+
+    reg = 0.0
+
+    # Fit model
+    anal_time = time.time()
+    model.fit(X=x_train, Y=y_train, X_val=x_val, Y_val=y_val,
+              batch_size=200, epochs=1, lr=0, momentum=0, l2_reg=reg)
+    analytical_grad_weight = model.layers[0].filter_gradients
+    analytical_grad_bias = model.layers[0].bias_gradients
+    # print(analytical_grad_weight)
+    print(analytical_grad_bias)
+    anal_time = time.time() - anal_time
+
+    # Get Numerical gradient
+    num_time = time.time()
+    numerical_grad_w, numerical_grad_b = ComputeGradsNum(x_train, y_train, model, l2_reg=reg, h=1e-5)
+    # print(numerical_grad_w)
+    print(numerical_grad_b)
+    num_time = time.time() - num_time
+
+    print("Weight Error:")
+    _EPS = 0.0000001
+    denom = np.abs(analytical_grad_weight) + np.abs(numerical_grad_w)
+    av_error = np.average(
+            np.divide(
+                np.abs(analytical_grad_weight-numerical_grad_w),
+                np.multiply(denom, (denom > _EPS)) + np.multiply(_EPS*np.ones(denom.shape), (denom <= _EPS))))
+    max_error = np.max(
+            np.divide(
+                np.abs(analytical_grad_weight-numerical_grad_w),
+                np.multiply(denom, (denom > _EPS)) + np.multiply(_EPS*np.ones(denom.shape), (denom <= _EPS))))
+    
+    print("Averaged Element-Wise Relative Error:", av_error*100, "%")
+    print("Max Element-Wise Relative Error:", max_error*100, "%")
+
+
+    print("Bias Error:")
+    _EPS = 0.000000001
+    denom = np.abs(analytical_grad_bias) + np.abs(numerical_grad_b)
+    av_error = np.average(
+            np.divide(
+                np.abs(analytical_grad_bias-numerical_grad_b),
+                np.multiply(denom, (denom > _EPS)) + np.multiply(_EPS*np.ones(denom.shape), (denom <= _EPS))))
+    max_error = np.max(
+            np.divide(
+                np.abs(analytical_grad_bias-numerical_grad_b),
+                np.multiply(denom, (denom > _EPS)) + np.multiply(_EPS*np.ones(denom.shape), (denom <= _EPS))))
+    print("Averaged Element-Wise Relative Error:", av_error*100, "%")
+    print("Max Element-Wise Relative Error:", max_error*100, "%")
+
+    print("Speedup:", (num_time/anal_time))
+
+
+
+#####################################################
+# The file /home/oleguer/Documents/p4/deepstuff/KTH_DeepLearning/Assignment_3/cifar_10_test.py contains:
+ #####################################################
+
+import numpy as np
+import sys, pathlib
+from helper import read_mnist
+import cv2
+sys.path.append(str(pathlib.Path(__file__).resolve().parents[1]) + "/Toy-DeepLearning-Framework/")
+
+from mlp.metrics import Accuracy
+from mlp.models import Sequential
+from mlp.losses import CrossEntropy
+from mlp.layers import Conv2D, Dense, Softmax, Relu, Flatten, Dropout, MaxPool2D
+from mlp.callbacks import MetricTracker, BestModelSaver, LearningRateScheduler
+from mlp.utils import LoadXY
+
+from helper import read_cifar_10
+
+if __name__ == "__main__":
+    # Load data
+    # x_train, y_train, x_val, y_val, x_test, y_test = get_data(n_train=200, n_val=200, n_test=2)
+    x_train, y_train, x_val, y_val, x_test, y_test = read_cifar_10(n_train=30000, n_val=200, n_test=200)
+    # x_train, y_train, x_val, y_val, x_test, y_test = read_cifar_10()
+
+    print(x_train.shape)
+    # print(y_train.shape)
+
+    # for i in range(200):
+    #     cv2.imshow("image", x_train[..., i])
+    #     cv2.waitKey()
+
+    # Define callbacks
+    mt = MetricTracker(file_name="cifar_test_3")  # Stores training evolution info (losses and metrics)
+    # bms = BestModelSaver("models/best_cifar")  # Stores training evolution info (losses and metrics)
+    lrs = LearningRateScheduler(evolution="cyclic", lr_min=1e-3, lr_max=0.2, ns=500)
+    # lrs = LearningRateScheduler(evolution="constant", lr_min=1e-3, lr_max=9e-1)
+    # callbacks = [mt, lrs]
+    callbacks = [mt, lrs]
+
+    # Define architecture (copied from https://appliedmachinelearning.blog/2018/03/24/achieving-90-accuracy-in-object-recognition-task-on-cifar-10-dataset-with-keras-convolutional-neural-networks/)
+    model = Sequential(loss=CrossEntropy(), metric=Accuracy())
+    model.add(Conv2D(num_filters=32, kernel_shape=(3, 3), stride=2, input_shape=(32, 32, 3)))
+    model.add(Relu())
+    model.add(Conv2D(num_filters=64, kernel_shape=(3, 3)))
+    model.add(Relu())
+    model.add(MaxPool2D(kernel_shape=(2, 2), stride=2))
+    model.add(Conv2D(num_filters=128, kernel_shape=(2, 2)))
+    model.add(Relu())
+    model.add(MaxPool2D(kernel_shape=(2, 2)))
+    model.add(Flatten())
+    model.add(Dense(nodes=200))
+    model.add(Relu())
+    model.add(Dense(nodes=10))
+    model.add(Softmax())
+
+
+    # for filt in model.layers[0].filters:
+    #     print(filt)
+    # y_pred_prob = model.predict(x_train)
+    # print(y_pred_prob)
+
+    # Fit model
+    # model.load("models/cifar_test_2")
+    # mt.load("models/tracker")
+    model.fit(X=x_train, Y=y_train, X_val=x_val, Y_val=y_val,
+              batch_size=100, epochs=20, momentum=0.9, l2_reg=0.003, callbacks=callbacks)
+    model.save("models/cifar_test_3")
+    # model.layers[0].show_filters()
+
+    # for filt in model.layers[0].filters:
+    #     print(filt)
+
+    # print(model.layers[0].biases)
+
+    mt.plot_training_progress()
+    # y_pred_prob = model.predict(x_train)
+    # # # model.pred
+    # print(y_train)
+    # print(np.round(y_pred_prob, decimals=2))
+
+
+#####################################################
+# The file /home/oleguer/Documents/p4/deepstuff/KTH_DeepLearning/Assignment_3/names.py contains:
+ #####################################################
+
+import numpy as np
+import sys, pathlib
+from helper import read_names
+import cv2
+sys.path.append(str(pathlib.Path(__file__).resolve().parents[1]) + "/Toy-DeepLearning-Framework/")
+
+from mlp.metrics import Accuracy
+from mlp.models import Sequential
+from mlp.losses import CrossEntropy
+from mlp.layers import Conv2D, Dense, Softmax, Relu, Flatten, Dropout, MaxPool2D
+from mlp.callbacks import MetricTracker, BestModelSaver, LearningRateScheduler
+
+if __name__ == "__main__":
+    # Load data
+    x_train, y_train, x_val, y_val, _, _ = read_names(n_train=-1)
+
+    # Compute class count for normalization
+    class_sum = np.sum(y_train, axis=1)*y_train.shape[0]
+    class_count = np.reciprocal(class_sum, where=abs(class_sum) > 0)
+
+    print(x_train.shape)
+    print(np.average(y_train, axis=1))
+    print(class_sum)
+    print(class_count)
+    
+    # Define callbacks
+    mt = MetricTracker()  # Stores training evolution info (losses and metrics)
+    # lrs = LearningRateScheduler(evolution="linear", lr_min=1e-3, lr_max=9e-1)
+    # lrs = LearningRateScheduler(evolution="constant", lr_min=1e-3, lr_max=9e-1)
+    # callbacks = [mt, lrs]
+    callbacks = [mt]
+
+    # Define hyperparams
+    d = x_train.shape[0]
+    n1 = 40  # Filters of first Conv2D
+    k1 = 6   # First kernel y size
+    n2 = 20  # Filters of second Conv2D
+    k2 = 4   # Second kernel y size
+    # Define model
+    model = Sequential(loss=CrossEntropy(class_count=None), metric=Accuracy())
+    model.add(Conv2D(num_filters=n1, kernel_shape=(d, k1), input_shape=x_train.shape[:-1]))
+    model.add(Relu())
+    model.add(Conv2D(num_filters=n2, kernel_shape=(1, k2)))
+    model.add(Relu())
+    model.add(Flatten())
+    model.add(Dense(nodes=y_train.shape[0]))
+    model.add(Softmax())
+    # Fit model
+    model.fit(X=x_train, Y=y_train, X_val=x_val, Y_val=y_val,
+              batch_size=100, epochs=500, lr = 1e-3, momentum=0.8, l2_reg=0.001,
+              compensate=True, callbacks=callbacks)
+    model.save("models/names_best")
+
+    mt.plot_training_progress(save=True, name="figures/names_best")
+    # y_pred_prob = model.predict(x_train)
+
+#####################################################
+# The file /home/oleguer/Documents/p4/deepstuff/KTH_DeepLearning/Assignment_3/confusion_matrices.py contains:
+ #####################################################
+
+import numpy as np
+import sys, pathlib
+from helper import read_names, read_names_countries
+import cv2
+sys.path.append(str(pathlib.Path(__file__).resolve().parents[1]) + "/Toy-DeepLearning-Framework/")
+
+from mlp.metrics import Accuracy
+from mlp.models import Sequential
+from mlp.losses import CrossEntropy
+from mlp.layers import Conv2D, Dense, Softmax, Relu, Flatten, Dropout, MaxPool2D
+from mlp.callbacks import MetricTracker, BestModelSaver, LearningRateScheduler
+from mlp.utils import plot_confusion_matrix
 
 np.random.seed(1)
 
 if __name__ == "__main__":
     # Load data
-    x_train, y_train = LoadXY("data_batch_1")
-    x_val, y_val = LoadXY("data_batch_2")
-    x_test, y_test = LoadXY("test_batch")
+    x_train, y_train, x_val, y_val, _, _ = read_names(n_train=-1)
+    print(x_train.shape)
+    classes = read_names_countries()
 
-    # Preprocessing
-    mean_x = np.mean(x_train)
-    std_x = np.std(x_train)
-    x_train = (x_train - mean_x)/std_x
-    x_val = (x_val - mean_x)/std_x
-    x_test = (x_test - mean_x)/std_x
-
-    # Define model
-    model = Sequential(loss=CrossEntropy(), metric=Accuracy())
-    model.add(Dense(nodes=50, input_dim=x_train.shape[0]))
-    model.add(Relu())
-    model.add(Dense(nodes=10, input_dim=50))
-    model.add(Softmax())
-
-    ns = 500
-
-    # Define callbacks
-    mt = MetricTracker()  # Stores training evolution info
-    bms = BestModelSaver(save_dir=None)  # Saves model with highest val_metric
-    lrs = LearningRateScheduler(evolution="cyclic", lr_min=1e-5, lr_max=1e-1, ns=ns)  # Modifies lr while training
-    callbacks = [mt, bms, lrs]
-
-    # Fit model
-    iterations = 2*ns
-    model.fit(X=x_train, Y=y_train, X_val=x_val, Y_val=y_val,
-                        batch_size=100, epochs=None, iterations=iterations, lr=0.01, momentum=0.0,
-                        l2_reg=0.01, shuffle_minibatch=False,
-                        callbacks=callbacks)
-    # model.save("models/mlp_overfit_test")
-    mt.plot_training_progress(show=False, save=True, name="figures/mlp_cyclic_good")
-    mt.plot_lr_evolution(show=False, save=True, name="figures/lr_cyclic_good")
-    
-    # Test model
-    best_model = bms.get_best_model()
-    test_acc, test_loss = best_model.get_metric_loss(x_test, y_test)
-    print("Test accuracy:", test_acc)
-
-#####################################################
-# The file /home/oleguer/Documents/p4/deepstuff/KTH_DeepLearning/Assignment_2/l2reg_search.py contains:
- #####################################################
-import sys, pathlib
-sys.path.append(str(pathlib.Path(__file__).resolve().parents[1]) + "/Toy-DeepLearning-Framework/")
-
-import numpy as np
-from mlp.callbacks import MetricTracker, BestModelSaver, LearningRateScheduler
-from mlp.layers import Dense, Softmax, Relu, Dropout
-from mlp.losses import CrossEntropy
-from mlp.models import Sequential
-from mlp.metrics import Accuracy
-from mlp.utils import LoadXY
-import matplotlib.pyplot as plt
-
-np.random.seed(1)
-
-def evaluator(l2_reg):
-    # Define model
-    model = Sequential(loss=CrossEntropy(), metric=Accuracy())
-    model.add(Dense(nodes=800, input_dim=x_train.shape[0]))
-    model.add(Relu())
-    model.add(Dense(nodes=10, input_dim=800))
-    model.add(Softmax())
-
-    ns = 800
-
-    # Define callbacks
-    mt = MetricTracker()  # Stores training evolution info
-    lrs = LearningRateScheduler(evolution="cyclic", lr_min=1e-3, lr_max=1e-1, ns=ns)  # Modifies lr while training
-    callbacks = [mt, lrs]
-
-    # Fit model
-    iterations = 4*ns
-    model.fit(X=x_train, Y=y_train, X_val=x_val, Y_val=y_val,
-            batch_size=100, iterations=iterations,
-            l2_reg=l2_reg, shuffle_minibatch=True,
-            callbacks=callbacks)
-    model.save("models/yes_dropout_test")
-    
-    # Test model
-    val_acc = model.get_metric_loss(x_val, y_val)[0]
-    test_acc = model.get_metric_loss(x_test, y_test)[0]
-    subtitle = "L2 param: " + str(l2_reg) + ", Test acc: " + str(test_acc)
-    mt.plot_training_progress(show=True, save=True, name="figures/l2reg_optimization/" + str(l2_reg), subtitle=subtitle)
-    print("Val accuracy:", val_acc)
-    print("Test accuracy:", test_acc)
-    return val_acc
-
-
-if __name__ == "__main__":
-    # Load data
-    x_train, y_train = LoadXY("data_batch_1")
-    x_val, y_val = LoadXY("data_batch_2")
-    x_test, y_test = LoadXY("test_batch")
-
-    # Preprocessing
-    mean_x = np.mean(x_train)
-    std_x = np.std(x_train)
-    x_train = (x_train - mean_x)/std_x
-    x_val = (x_val - mean_x)/std_x
-    x_test = (x_test - mean_x)/std_x
-
-    # Coarse search
-    l2_params = np.linspace(-7.0, -1.0, num=80)
-    # val_accuracies = []
-    # for l2_param in l2_params:
-    #     val_acc = evaluator(10**l2_param)
-    #     val_accuracies.append(val_acc)
-    #     np.save("l2_search_vals", val_accuracies)
-    val_accuracies = np.load("l2_search_vals.npy")
-    ratio = 10
-    minimum = 50
-    maximum = 75
-    l2_params = [l2_params[i] for i in range(80) if i > minimum and i < maximum]
-    val_accuracies = [val_accuracies[i] for i in range(80) if i > minimum and i < maximum]
-
-    plt.plot(l2_params, val_accuracies)
-    plt.xlabel("l2 regularization")
-    plt.ylabel("Validation Accuracy")
-    plt.ylim(bottom=0.4, top=0.5)
-    plt.title("Uniform Search Results")
-    plt.savefig("figures/l2reg_search_results_2.png")
-    plt.show()
-
-
-#####################################################
-# The file /home/oleguer/Documents/p4/deepstuff/KTH_DeepLearning/Assignment_2/cyclical_lr_good.py contains:
- #####################################################
-import numpy as np
-import sys
-import pathlib
-sys.path.append(str(pathlib.Path(__file__).resolve().parents[1]) + "/Toy-DeepLearning-Framework/")
-sys.path.append(str(pathlib.Path(__file__).resolve().parents[1]) + "/HyperParameter-Optimizer/")
-
-from skopt.space import Real
-from mlp.utils import LoadXY
-from mlp.metrics import Accuracy
-from mlp.models import Sequential
-from mlp.losses import CrossEntropy
-from mlp.layers import Dense, Softmax, Relu
-from mlp.callbacks import MetricTracker, BestModelSaver, LearningRateScheduler
-from util.misc import dict_to_string
-
-from gaussian_process import GaussianProcessSearch
-
-def evaluator(x_train, y_train, x_val, y_val, x_test, y_test, experiment_name="", **kwargs):
-    # Saving directories
-    figure_file = "figures/" + experiment_name + "/" + dict_to_string(kwargs)
-    model_file = "models/" + experiment_name + "/" + dict_to_string(kwargs)
-
-    # Define model
-    model = Sequential(loss=CrossEntropy(), metric=Accuracy())
-    model.add(Dense(nodes=50, input_dim=x_train.shape[0]))
-    model.add(Relu())
-    model.add(Dense(nodes=10, input_dim=50))
-    model.add(Softmax())
-
-    # Pick metaparams
-    batch_size = 100
-    ns = 2*np.floor(x_train.shape[1]/batch_size)
-    iterations = 4*ns  # 2 cycles
-
-    # Define callbacks
-    mt = MetricTracker()  # Stores training evolution info
-    # bms = BestModelSaver(save_dir=None)
-    lrs = LearningRateScheduler(
-        evolution="cyclic", lr_min=1e-5, lr_max=1e-1, ns=ns)  
-    # callbacks = [mt, bms, lrs]
-    callbacks = [mt, lrs]
-
-    # Adjust logarithmic
-    kwargs["l2_reg"] = 10**kwargs["l2_reg"]
-
-    # Fit model
-    model.fit(X=x_train, Y=y_train, X_val=x_val, Y_val=y_val,
-              batch_size=batch_size, epochs=None, iterations=iterations, **kwargs,
-              callbacks=callbacks)
-
-    # Write results    
-    # best_model = bms.get_best_model()
-    test_acc = model.get_metric_loss(x_test, y_test)[0]
-    subtitle = "l2_reg: " + str(kwargs["l2_reg"]) + ", Test Acc: " + str(test_acc)
-    mt.plot_training_progress(show=False, save=True, name=figure_file, subtitle=subtitle)
-
-    # Maximizing value: validation accuracy
-    # val_metric = bms.best_metric
-    val_metric = model.get_metric_loss(x_val, y_val)[0]
-    return val_metric
-
-
-if __name__ == "__main__":
-    # Load data
-    x_train, y_train = LoadXY("data_batch_1")
-    for i in [2, 3, 4, 5]:
-        x, y = LoadXY("data_batch_" + str(i))
-        x_train = np.concatenate((x_train, x), axis=1)
-        y_train = np.concatenate((y_train, y), axis=1)
-    x_val = x_train[:, -5000:]
-    y_val = y_train[:, -5000:]
-    x_train = x_train[:, :-5000]
-    y_train = y_train[:, :-5000]
-    x_test, y_test = LoadXY("test_batch")
-
-    # Preprocessing
-    mean_x = np.mean(x_train)
-    std_x = np.std(x_train)
-    x_train = (x_train - mean_x)/std_x
-    x_val = (x_val - mean_x)/std_x
-    x_test = (x_test - mean_x)/std_x
-
-    fixed_args = {
-        "experiment_name": "l2reg_optimization",
-        "x_train": x_train,
-        "y_train": y_train,
-        "x_val": x_val,
-        "y_val": y_val,
-        "x_test": x_test,
-        "y_test": y_test,
-        "momentum": 0.0,
-        "shuffle_minibatch":False,
-    }
-
-    pathlib.Path(fixed_args["experiment_name"]).mkdir(parents=True, exist_ok=True)
-    l2reg_space = Real(name='l2_reg', low=-7, high=-1)
-    search_space = [l2reg_space]
-
-    gp_search = GaussianProcessSearch(search_space=search_space,
-                                      fixed_space=fixed_args,
-                                      evaluator=evaluator,
-                                      input_file=None,
-                                      output_file=fixed_args["experiment_name"] + '/evaluations.csv')
-    gp_search.init_session()
-    x, y = gp_search.get_maximum(n_calls=15,
-                                 n_random_starts=7,
-                                 noise=0.001,
-                                 verbose=True)
-    print("Max at:", x, "with value:", y)
-
-
-#####################################################
-# The file /home/oleguer/Documents/p4/deepstuff/KTH_DeepLearning/Assignment_2/overfit_test.py contains:
- #####################################################
-import sys, pathlib
-sys.path.append(str(pathlib.Path(__file__).resolve().parents[1]) + "/Toy-DeepLearning-Framework/")
-
-import numpy as np
-from mlp.layers import Dense, Softmax, Relu
-from mlp.losses import CrossEntropy
-from mlp.models import Sequential
-from mlp.metrics import accuracy
-from mlp.utils import LoadXY
-
-np.random.seed(0)
-
-if __name__ == "__main__":
-    # Download & Extract CIFAR-10 Python (https://www.cs.toronto.edu/~kriz/cifar-10-python.tar.gz)
-    # Put it in a Data folder
-
-    # Load data
-    x_train, y_train = LoadXY("data_batch_1")
-    x_val, y_val = LoadXY("data_batch_2")
-    x_test, y_test = LoadXY("test_batch")
-
-    # Preprocessing
-    mean_x = np.mean(x_train)
-    std_x = np.std(x_train)
-    x_train = (x_train - mean_x)/std_x
-    x_val = (x_val - mean_x)/std_x
-    x_test = (x_test - mean_x)/std_x
-
-    # Define model
+    # Load model model
     model = Sequential(loss=CrossEntropy())
-    model.add(Dense(nodes=50, input_dim=x_train.shape[0]))
-    model.add(Relu())
-    model.add(Dense(nodes=10, input_dim=50))
-    model.add(Softmax())
+    # model.load("models/names_test")
+    model.load("models/name_metaparam_search_2/n1-39_n2-33_k1-2_k2-10_batch_size-50")
 
-    # Fit model
-    x_train = x_train[:, 0:100]
-    y_train = y_train[:, 0:100]
-    model.fit(X=x_train, Y=y_train, X_val=x_val, Y_val=y_val,
-                        batch_size=100, epochs=200, lr=0.001, momentum=0.0,
-                        l2_reg=0.0, shuffle_minibatch=False, save_path="models/mlp_overfit_test")
-    model.plot_training_progress(save=True, name="figures/mlp_overfit_test")
-    model.save("models/mlp_overfit_test")
+    y_pred_train = model.predict_classes(x_train)
+    y_pred_val = model.predict_classes(x_val)
+    
+    plot_confusion_matrix(y_pred_train, y_train, classes, "figures/conf_best_model")
+    plot_confusion_matrix(y_pred_val, y_val, classes, "figures/conf_best_model_val")
 
-    # Test model
-    test_acc, test_loss = model.get_classification_metrics(x_test, y_test)
-    print("Test accuracy:", test_acc)
 
 #####################################################
-# The file /home/oleguer/Documents/p4/deepstuff/KTH_DeepLearning/Assignment_2/metaparam_optimization.py contains:
+# The file /home/oleguer/Documents/p4/deepstuff/KTH_DeepLearning/Assignment_3/metaparam_search.py contains:
  #####################################################
 import numpy as np
 import sys
 import pathlib
+from helper import read_names
+
 sys.path.append(str(pathlib.Path(__file__).resolve().parents[1]) + "/Toy-DeepLearning-Framework/")
 sys.path.append(str(pathlib.Path(__file__).resolve().parents[1]) + "/HyperParameter-Optimizer/")
 
@@ -2125,241 +2241,151 @@ from mlp.utils import LoadXY
 from mlp.metrics import Accuracy
 from mlp.models import Sequential
 from mlp.losses import CrossEntropy
-from mlp.layers import Dense, Softmax, Relu
+from mlp.layers import Conv2D, Dense, Softmax, Relu, Flatten, Dropout, MaxPool2D
 from mlp.callbacks import MetricTracker, BestModelSaver, LearningRateScheduler
 from util.misc import dict_to_string
 
 from gaussian_process import GaussianProcessSearch
 
-def evaluator(x_train, y_train, x_val, y_val, x_test, y_test, experiment_name="", **kwargs):
+def evaluator(x_train, y_train, x_val, y_val, experiment_name="", **kwargs):
     print(kwargs)
     # Saving directories
     figure_file = "figures/" + experiment_name + "/" + dict_to_string(kwargs)
     model_file = "models/" + experiment_name + "/" + dict_to_string(kwargs)
 
+    mt = MetricTracker()  # Stores training evolution info (losses and metrics)
+
     # Define model
-    model = Sequential(loss=CrossEntropy(), metric=Accuracy())
-    model.add(Dense(nodes=kwargs["hidden_units"], input_dim=x_train.shape[0]))
-    model.add(Relu())
-    model.add(Dense(nodes=10, input_dim=kwargs["hidden_units"]))
-    model.add(Softmax())
+    d = x_train.shape[0]
+    n1 = kwargs["n1"]  # Filters of first Conv2D
+    k1 = kwargs["k1"]  # First kernel y size
+    n2 = kwargs["n2"]  # Filters of second Conv2D
+    k2 = kwargs["k2"]  # Second kernel y size
+    batch_size = kwargs["batch_size"]
 
-    # Pick metaparams
-    batch_size = 100
-    ns = kwargs["ns"]
-    iterations = kwargs["number_of_cycles"]*ns
-
-    # Define callbacks
-    mt = MetricTracker()  # Stores training evolution info
-    bms = BestModelSaver(save_dir=None)
-    lrs = LearningRateScheduler(
-        evolution="cyclic", lr_min=1e-5, lr_max=1e-1, ns=ns)  
-    callbacks = [mt, bms, lrs]
-    # callbacks = [mt, lrs]
-
-    # Adjust logarithmic
-    kwargs["l2_reg"] = 10**kwargs["l2_reg"]
-
-    # Fit model
-    model.fit(X=x_train, Y=y_train, X_val=x_val, Y_val=y_val,
-              batch_size=batch_size, epochs=None, iterations=iterations,
-              callbacks=callbacks, **kwargs)
+    try:
+        # Define model
+        model = Sequential(loss=CrossEntropy(class_count=None), metric=Accuracy())
+        model.add(Conv2D(num_filters=n1, kernel_shape=(d, k1), input_shape=x_train.shape[:-1]))
+        model.add(Relu())
+        model.add(Conv2D(num_filters=n2, kernel_shape=(1, k2)))
+        model.add(Relu())
+        model.add(Flatten())
+        model.add(Dense(nodes=y_train.shape[0]))
+        model.add(Softmax())
+        # Fit model
+        model.fit(X=x_train, Y=y_train, X_val=x_val, Y_val=y_val,
+                batch_size=batch_size, epochs=1000, lr = 1e-2, momentum=0.8, l2_reg=0.001,
+                compensate=True, callbacks=[mt])
+    except Exception as e:
+        print(e)
+        return -1  # If configuration impossible
+    model.save(model_file)
 
     # Write results    
-    best_model = bms.get_best_model()
-    test_acc = best_model.get_metric_loss(x_test, y_test)[0]
-    
-    l2_str = str("{:.2E}".format(Decimal(kwargs["l2_reg"])))
-    ns_str = str(ns)
-    nc_str = str(kwargs["number_of_cycles"])
-    h_units_str = str(kwargs["hidden_units"])
-    m_str = str("{:.2E}".format(Decimal(kwargs["momentum"])))
-    test_acc_str = str("{:.2E}".format(Decimal(test_acc)))
-
-    subtitle = "l2reg:" + l2_str + ", ns:" + ns_str + ", nc:" + nc_str +\
-        ", units:" + h_units_str + ", moment:" + m_str + ", Test Acc: " + test_acc_str
+    n1 = str(n1)
+    n2 = str(n2)
+    k1 = str(k1)
+    k2 = str(k2)
+    batch_size = str(batch_size)
+    subtitle = "n1:" + n1 + ", n2:" + n2 + ", k1:" + k1 + ", k2:" + k1 +\
+               ", batch_size:" + batch_size
     mt.plot_training_progress(show=False, save=True, name=figure_file, subtitle=subtitle)
 
     # Maximizing value: validation accuracy
-    val_metric = bms.best_metric
-    # val_metric = model.get_metric_loss(x_val, y_val)[0]
-    return val_metric
+    return model.val_metric
 
 
 if __name__ == "__main__":
     # Load data
-    x_train, y_train = LoadXY("data_batch_1")
-    for i in [2, 3, 4, 5]:
-        x, y = LoadXY("data_batch_" + str(i))
-        x_train = np.concatenate((x_train, x), axis=1)
-        y_train = np.concatenate((y_train, y), axis=1)
-    x_val = x_train[:, -1000:]
-    y_val = y_train[:, -1000:]
-    x_train = x_train[:, :-1000]
-    y_train = y_train[:, :-1000]
-    x_test, y_test = LoadXY("test_batch")
-
-    # Preprocessing
-    mean_x = np.mean(x_train)
-    std_x = np.std(x_train)
-    x_train = (x_train - mean_x)/std_x
-    x_val = (x_val - mean_x)/std_x
-    x_test = (x_test - mean_x)/std_x
+    x_train, y_train, x_val, y_val, _, _ = read_names(n_train=-1)
 
     fixed_args = {
-        "experiment_name": "metaparam_search",
+        "experiment_name": "name_metaparam_search_2",
         "x_train": x_train,
         "y_train": y_train,
         "x_val": x_val,
         "y_val": y_val,
-        "x_test": x_test,
-        "y_test": y_test,
-        "shuffle_minibatch":True,
     }
-
     pathlib.Path(fixed_args["experiment_name"]).mkdir(parents=True, exist_ok=True)
     
     # Search space
-    l2reg_space = Real(name='l2_reg', low=-5, high=-1)
-    cycles_length = Integer(name='ns', low=400, high=1200)
-    number_of_cycles = Integer(name="number_of_cycles", low=2, high=6)
-    hidden_units = Integer(name="hidden_units", low=50, high=200)
-    momentum = Real(name="momentum", low=0.2, high=0.95)
-    search_space = [l2reg_space, cycles_length, number_of_cycles, hidden_units, momentum]
+    n1 = Integer(name='n1', low=10, high=40)
+    n2 = Integer(name='n2', low=10, high=40)
+    k1 = Integer(name='k1', low=2, high=10)
+    k2 = Integer(name='k2', low=2, high=10)
+    batch_size = Integer(name="batch_size", low=50, high=300)
+    search_space = [n1, n2, k1, k2, batch_size]
 
     gp_search = GaussianProcessSearch(search_space=search_space,
                                       fixed_space=fixed_args,
                                       evaluator=evaluator,
-                                      input_file=None,
+                                      input_file="name_metaparam_search" + '/evaluations.csv',
                                       output_file=fixed_args["experiment_name"] + '/evaluations.csv')
     gp_search.init_session()
-    x, y = gp_search.get_maximum(n_calls=80,
-                                 n_random_starts=20,
+    x, y = gp_search.get_maximum(n_calls = 12,
+                                 n_random_starts=0,
                                  noise=0.001,
                                  verbose=True)
     print("Max at:", x, "with value:", y)
 
 
 #####################################################
-# The file /home/oleguer/Documents/p4/deepstuff/KTH_DeepLearning/Assignment_2/check_gradients.py contains:
+# The file /home/oleguer/Documents/p4/deepstuff/KTH_DeepLearning/Assignment_3/helper.py contains:
  #####################################################
-# Add path to Toy-DeepLearning-Framework
-import sys, pathlib
-sys.path.append(str(pathlib.Path(__file__).resolve().parents[1]) + "/Toy-DeepLearning-Framework/")
-
 import numpy as np
-import copy
-import time
-from tqdm import tqdm
 
-from mlp.layers import Dense, Softmax, Relu
-from mlp.losses import CrossEntropy
-from mlp.models import Sequential
-from mlp.metrics import accuracy
-from mlp.utils import LoadXY, prob_to_class
-from mpo.metaparamoptimizer import MetaParamOptimizer
-from util.misc import dict_to_string
+def load_idxfile(filename):
 
-
-def evaluate_cost(W, x, y_real, l2_reg):
-    model.layers[0].weights = W
-    y_pred = model.predict(x)
-    c = model.cost(y_pred, y_real, l2_reg)
-    return c
-
-def ComputeGradsNum(x, y_real, model, l2_reg, h):
-    """ Converted from matlab code """
-    print("Computing numerical gradients...")
-    W = copy.deepcopy(model.layers[0].weights)
-
-    no 	= 	W.shape[0]
-    d 	= 	x.shape[0]
-
-    # c = evaluate_cost(W, x, y_real)
-    grad_W = np.zeros(W.shape)
-    for i in tqdm(range(W.shape[0])):
-        for j in range(W.shape[1]):
-            W_try = np.matrix(W)
-            W_try[i,j] -= h
-            c1 = evaluate_cost(W_try, x, y_real, l2_reg)
-            
-            W_try = np.matrix(W)
-            W_try[i,j] += h
-            c2 = evaluate_cost(W_try, x, y_real, l2_reg)
-            
-            grad_W[i,j] = (c2-c1) / (2*h)
-    return grad_W
-
-if __name__ == "__main__":
-    x_train, y_train = LoadXY("data_batch_1")
-    x_val, y_val = LoadXY("data_batch_2")
-    x_test, y_test = LoadXY("test_batch")
-
-    # Preprocessing
-    mean_x = np.mean(x_train)
-    std_x = np.std(x_train)
-    x_train = (x_train - mean_x)/std_x
-    x_val = (x_val - mean_x)/std_x
-    x_test = (x_test - mean_x)/std_x
-
-    x = x_train[:, 0:20]
-    y = y_train[:, 0:20]
-    reg = 0.1
-
-    # Define model
-    model = Sequential(loss=CrossEntropy())
-    model.add(Dense(nodes=50, input_dim=x_train.shape[0]))
-    model.add(Relu())
-    model.add(Dense(nodes=10, input_dim=50))
-    model.add(Softmax())
-
-    anal_time = time.time()
-    model.fit(x, y, batch_size=None, epochs=1, lr=0, # 0 lr will not change weights
-                    momentum=0, l2_reg=reg)
-    analytical_grad = model.layers[0].gradient
-    anal_time = anal_time - time.time()
-
-    # Get Numerical gradient
-    num_time = time.time()
-    numerical_grad = ComputeGradsNum(x, y, model, l2_reg=reg, h=1e-5)
-    num_time = num_time - time.time()
-
-    _EPS = 0.0000001
-    denom = np.abs(analytical_grad) + np.abs(numerical_grad)
-    av_error = np.average(
-            np.divide(
-                np.abs(analytical_grad-numerical_grad),
-                np.multiply(denom, (denom > _EPS)) + np.multiply(_EPS*np.ones(denom.shape), (denom <= _EPS))))
-    max_error = np.max(
-            np.divide(
-                np.abs(analytical_grad-numerical_grad),
-                np.multiply(denom, (denom > _EPS)) + np.multiply(_EPS*np.ones(denom.shape), (denom <= _EPS))))
+    """
+    Load idx file format. For more information : http://yann.lecun.com/exdb/mnist/ 
+    """
+    import struct
     
-    print("Averaged Element-Wise Relative Error:", av_error*100, "%")
-    print("Max Element-Wise Relative Error:", max_error*100, "%")
-    print("Speedup:", (num_time/anal_time))
+    filename = "data/" + filename
+    with open(filename,'rb') as _file:
+        if ord(_file.read(1)) != 0 or ord(_file.read(1)) != 0 :
+           raise Exception('Invalid idx file: unexpected magic number!')
+        dtype,ndim = ord(_file.read(1)),ord(_file.read(1))
+        shape = [struct.unpack(">I", _file.read(4))[0] for _ in range(ndim)]
+        data = np.fromfile(_file, dtype=np.dtype(np.uint8).newbyteorder('>')).reshape(shape)
+    return data
+    
+def read_mnist(dim=[28,28],n_train=50000, n_val=10000,n_test=1000):
 
+    """
+    Read mnist train and test data. Images are normalized to be in range [0,1]. Labels are one-hot coded.
+    """    
+    import scipy.misc
 
+    train_imgs = load_idxfile("train-images-idx3-ubyte")
+    train_imgs = train_imgs / 255.
+    train_imgs = train_imgs.reshape(-1,dim[0]*dim[1])
 
-#####################################################
-# The file /home/oleguer/Documents/p4/deepstuff/KTH_DeepLearning/Assignment_2/l2_reg_good.py contains:
- #####################################################
-import sys, pathlib
-sys.path.append(str(pathlib.Path(__file__).resolve().parents[1]) + "/Toy-DeepLearning-Framework/")
+    train_lbls = load_idxfile("train-labels-idx1-ubyte")
+    train_lbls_1hot = np.zeros((len(train_lbls),10),dtype=np.float32)
+    train_lbls_1hot[range(len(train_lbls)),train_lbls] = 1.
 
-import numpy as np
-from mlp.callbacks import MetricTracker, BestModelSaver, LearningRateScheduler
-from mlp.layers import Dense, Softmax, Relu, Dropout
-from mlp.losses import CrossEntropy
-from mlp.models import Sequential
-from mlp.metrics import Accuracy
-from mlp.utils import LoadXY
-import matplotlib.pyplot as plt
+    test_imgs = load_idxfile("t10k-images-idx3-ubyte")
+    test_imgs = test_imgs / 255.
+    test_imgs = test_imgs.reshape(-1,dim[0]*dim[1])
 
-np.random.seed(1)
+    test_lbls = load_idxfile("t10k-labels-idx1-ubyte")
+    test_lbls_1hot = np.zeros((len(test_lbls),10),dtype=np.float32)
+    test_lbls_1hot[range(len(test_lbls)),test_lbls] = 1.
 
+    def rs(imgs):
+        imgs = (imgs.T).reshape((dim[0], dim[1], imgs.shape[0]), order='C')
+        return np.expand_dims(imgs, axis=2).astype(float)  # h, w, c, n
+    return rs(train_imgs[:n_train]),train_lbls_1hot[:n_train].T.astype(float),\
+           rs(train_imgs[n_train:n_train+n_val]),train_lbls_1hot[n_train:n_train+n_val].T.astype(float),\
+           rs(test_imgs[:n_test]),test_lbls_1hot[:n_test].T.astype(float)
 
-if __name__ == "__main__":
+def read_cifar_10(n_train=None, n_val=None, n_test=None):
+    import sys, pathlib
+    sys.path.append(str(pathlib.Path(__file__).resolve().parents[1]) + "/Toy-DeepLearning-Framework/")
+    from mlp.utils import LoadXY
+
     # Load data
     x_train, y_train = LoadXY("data_batch_1")
     for i in [2, 3, 4, 5]:
@@ -2372,6 +2398,16 @@ if __name__ == "__main__":
     y_train = y_train[:, :-1000]
     x_test, y_test = LoadXY("test_batch")
 
+    if n_train is not None:
+        x_train = x_train[..., 0:n_train]
+        y_train = y_train[..., 0:n_train]
+    if n_val is not None:
+        x_val = x_val[..., 0:n_val]
+        y_val = y_val[..., 0:n_val]
+    if n_test is not None:
+        x_test = x_test[..., 0:n_test]
+        y_test = y_test[..., 0:n_test]
+
     # Preprocessing
     mean_x = np.mean(x_train)
     std_x = np.std(x_train)
@@ -2379,122 +2415,192 @@ if __name__ == "__main__":
     x_val = (x_val - mean_x)/std_x
     x_test = (x_test - mean_x)/std_x
 
-    # Define model
-    model = Sequential(loss=CrossEntropy(), metric=Accuracy())
-    model.add(Dense(nodes=800, input_dim=x_train.shape[0]))
-    model.add(Relu())
-    model.add(Dense(nodes=10, input_dim=800))
-    model.add(Softmax())
+    # reshaped_train = np.zeros((32, 32, 3, x_train.shape[-1]))
+    # for i in range(x_train.shape[-1]):
+    #     flatted_image = np.array(x_train[..., i])
+    #     image = np.reshape(flatted_image,  (32, 32, 3), order='F')
+    #     cv2.imshow("image", image)
+    #     cv2.waitKey()
 
-    ns = 800
+    x_train = np.reshape(np.array(x_train), (32, 32, 3, x_train.shape[-1]), order='F')
+    x_val = np.reshape(np.array(x_val), (32, 32, 3, x_val.shape[-1]), order='F')
+    x_test = np.reshape(np.array(x_test), (32, 32, 3, x_test.shape[-1]), order='F')
 
-    # Define callbacks
-    mt = MetricTracker()  # Stores training evolution info
-    lrs = LearningRateScheduler(evolution="cyclic", lr_min=1e-5, lr_max=1e-1, ns=ns)  # Modifies lr while training
-    callbacks = [mt, lrs]
+    return x_train.astype(float), y_train.astype(float), x_val.astype(float), y_val.astype(float), x_test.astype(float), y_test.astype(float)
 
-    # Fit model
-    iterations = 6*ns
-    model.fit(X=x_train, Y=y_train, X_val=x_val, Y_val=y_val,
-            batch_size=100, iterations=iterations,
-            l2_reg=10**-1.85, shuffle_minibatch=True,
-            callbacks=callbacks)
-    model.save("models/l2reg_optimization_good")
+def read_names(n_train=-1):
+    def read_file(filepath="data/names/ascii_names.txt"):
+        names = []
+        labels = []
+        with open(filepath) as fp:
+            line = fp.readline()
+            while line:
+                line = line.replace("  ", " ")
+                # print(line)
+                names.append(line.split(" ")[0].lower())
+                labels.append(int(line.split(" ")[-1]))
+                line = fp.readline()
+        return names, labels
+
+    def encode_names(names):
+        n_len = -1
+        for name in names:
+            n_len = max(n_len, len(name))
+        x = np.zeros((ord('z')-ord('a')+1, n_len, len(names)))
+        for n in range(len(names)):
+            for i, char in enumerate(names[n]):
+                if ord(char) > ord('z') or ord(char) < ord('a'):
+                    continue
+                x[ord(char)-ord('a')][i][n] = 1
+        return np.expand_dims(x, axis=2).astype(float)        
+
+    def get_one_hot_labels(labels):
+        labels = np.array(labels)
+        one_hot_labels = np.zeros((labels.size, np.max(labels)))
+        one_hot_labels[np.arange(labels.size), labels-1] = 1
+        return one_hot_labels.T
     
-    # Test model
-    val_acc = model.get_metric_loss(x_val, y_val)[0]
-    test_acc = model.get_metric_loss(x_test, y_test)[0]
-    subtitle = "Test acc: " + str(test_acc)
-    mt.plot_training_progress(show=True, save=True, name="figures/l2reg_optimization/good", subtitle=subtitle)
-    print("Val accuracy:", val_acc)
-    print("Test accuracy:", test_acc)
+    names, labels = read_file()
+    x = encode_names(names)
+    y = get_one_hot_labels(labels)
+
+    val_indxs = []
+    with open("data/names/Validation_Inds.txt") as fp:
+        val_indxs = [int(val) for val in fp.readline().split(" ")]
+
+    indx = list(range(len(names)))
+    np.random.shuffle(indx)
+    for val in val_indxs:
+        indx.remove(val)
+
+    return x[..., indx[:n_train]], y[..., indx[:n_train]],\
+           x[..., val_indxs], y[..., val_indxs],\
+           None, None
+
+
+def read_names_test(n_train=-1):
+    def read_file(filepath="data/names/test.txt"):
+        names = []
+        labels = []
+        with open(filepath) as fp:
+            line = fp.readline()
+            while line:
+                line = line.replace("  ", " ")
+                # print(line)
+                names.append(line.split(" ")[0].lower())
+                labels.append(int(line.split(" ")[-1]))
+                line = fp.readline()
+        return names, labels
+
+    def encode_names(names):
+        n_len = 19
+        x = np.zeros((ord('z')-ord('a')+1, n_len, len(names)))
+        for n in range(len(names)):
+            for i, char in enumerate(names[n]):
+                if ord(char) > ord('z') or ord(char) < ord('a'):
+                    continue
+                x[ord(char)-ord('a')][i][n] = 1
+        return np.expand_dims(x, axis=2).astype(float)        
+
+    def get_one_hot_labels(labels):
+        labels = np.array(labels)
+        one_hot_labels = np.zeros((labels.size, np.max(labels)))
+        one_hot_labels[np.arange(labels.size), labels-1] = 1
+        return one_hot_labels.T
+    
+    names, labels = read_file()
+    x = encode_names(names)
+    y = get_one_hot_labels(labels)
+    return x, y, names
+
+def read_names_countries():
+    return ["Arabic", "Chinese", "Czech", "Dutch", "English", "French", "German",\
+            "Greek", "Irish", "Italian", "Japanese", "Korean", "Polish", "Portuguese",\
+            "Russian", "Scottish", "Spanish", "Vietnamese"]
+
+#####################################################
+# The file /home/oleguer/Documents/p4/deepstuff/KTH_DeepLearning/Assignment_3/test.py contains:
+ #####################################################
+import numpy as np
+import sys, pathlib
+import cv2
+
+sys.path.append(str(pathlib.Path(__file__).resolve().parents[1]) + "/Toy-DeepLearning-Framework/")
+
+from mlp.callbacks import MetricTracker
+
+mt = MetricTracker()
+mt.metric_name = "Accuracy"
+mt.load("models/tracker")
+mt.plot_training_progress()
 
 
 #####################################################
-# The file /home/oleguer/Documents/p4/deepstuff/KTH_DeepLearning/Assignment_2/lr_ranges.py contains:
+# The file /home/oleguer/Documents/p4/deepstuff/KTH_DeepLearning/Assignment_3/mnist.py contains:
  #####################################################
-import sys, pathlib
-sys.path.append(str(pathlib.Path(__file__).resolve().parents[1]) + "/Toy-DeepLearning-Framework/")
 
 import numpy as np
-from mlp.callbacks import MetricTracker, BestModelSaver, LearningRateScheduler
-from mlp.layers import Dense, Softmax, Relu, Dropout
-from mlp.losses import CrossEntropy
-from mlp.models import Sequential
-from mlp.metrics import Accuracy
-from mlp.utils import LoadXY
-import matplotlib.pyplot as plt
+import sys, pathlib
+from helper import read_mnist
+import cv2
+sys.path.append(str(pathlib.Path(__file__).resolve().parents[1]) + "/Toy-DeepLearning-Framework/")
 
-np.random.seed(1)
+from mlp.metrics import Accuracy
+from mlp.models import Sequential
+from mlp.losses import CrossEntropy
+from mlp.layers import Conv2D, Dense, Softmax, Relu, Flatten, Dropout, MaxPool2D
+from mlp.callbacks import MetricTracker, BestModelSaver, LearningRateScheduler
 
 if __name__ == "__main__":
     # Load data
-    x_train, y_train = LoadXY("data_batch_1")
-    x_val, y_val = LoadXY("data_batch_2")
-    x_test, y_test = LoadXY("test_batch")
+    x_train, y_train, x_val, y_val, x_test, y_test = read_mnist(n_train=200, n_val=200, n_test=2)
 
-    # Preprocessing
-    mean_x = np.mean(x_train)
-    std_x = np.std(x_train)
-    x_train = (x_train - mean_x)/std_x
-    x_val = (x_val - mean_x)/std_x
-    x_test = (x_test - mean_x)/std_x
+    # Define callbacks
+    mt = MetricTracker()  # Stores training evolution info (losses and metrics)
+    # lrs = LearningRateScheduler(evolution="linear", lr_min=1e-3, lr_max=9e-1)
+    # lrs = LearningRateScheduler(evolution="constant", lr_min=1e-3, lr_max=9e-1)
+    # callbacks = [mt, lrs]
+    callbacks = [mt]
 
     # Define model
     model = Sequential(loss=CrossEntropy(), metric=Accuracy())
-    model.add(Dense(nodes=50, input_dim=x_train.shape[0]))
+    model.add(Conv2D(num_filters=64, kernel_shape=(4, 4), input_shape=(28, 28, 1)))
     model.add(Relu())
-    model.add(Dense(nodes=10, input_dim=50))
+    model.add(MaxPool2D(kernel_shape=(2, 2)))
+    # model.add(Conv2D(num_filters=32, kernel_shape=(3, 3)))
+    # model.add(Relu())
+    model.add(Flatten())
+    # model.add(Flatten(input_shape=(28, 28, 1)))
+    model.add(Dense(nodes=400))
+    model.add(Relu())
+    model.add(Dense(nodes=10))
     model.add(Softmax())
 
-    ns = 800
-
-    # Define callbacks
-    mt = MetricTracker()  # Stores training evolution info
-    lrs = LearningRateScheduler(evolution="cyclic", lr_min=1e-7, lr_max=1e-2, ns=ns)  # Modifies lr while training
-    callbacks = [mt, lrs]
+    # for filt in model.layers[0].filters:
+    #     print(filt)
+    # y_pred_prob = model.predict(x_train)
+    # print(y_pred_prob)
 
     # Fit model
-    iterations = 6*ns
     model.fit(X=x_train, Y=y_train, X_val=x_val, Y_val=y_val,
-            batch_size=100, iterations=iterations,
-            l2_reg=10**-1.85, shuffle_minibatch=True,
-            callbacks=callbacks)
-    # model.save("models/yes_dropout_test")
-    
-    # # Test model
-    val_acc = model.get_metric_loss(x_val, y_val)[0]
-    test_acc = model.get_metric_loss(x_test, y_test)[0]
-    subtitle = "Test acc: " + str(test_acc)
-    mt.plot_training_progress(show=True, save=True, name="figures/lr_limits/final_train", subtitle=subtitle)
-    # mt.save("limits_test")
-    # lrs = np.load("limits_test_lr.npy")
-    # plt.plot(lrs)
-    # plt.show()
+              batch_size=100, epochs=200, lr = 1e-2, momentum=0.5, callbacks=callbacks)
+    model.save("models/mnist_test_conv_2")
+    # model.layers[0].show_filters()
 
-    # mt.plot_acc_vs_lr(show=True, save=True, name="figures/lr_limits/lr_test", subtitle="")
+    # for filt in model.layers[0].filters:
+    #     print(filt)
+
+    # print(model.layers[0].biases)
+
+    mt.plot_training_progress()
+    y_pred_prob = model.predict(x_train)
+    # # # model.pred
+    # print(y_train)
+    # print(np.round(y_pred_prob, decimals=2))
 
 
 #####################################################
-# The file /home/oleguer/Documents/p4/deepstuff/KTH_DeepLearning/Assignment_2/lr_search_plot.py contains:
- #####################################################
-import pandas as pd
-import matplotlib.pyplot as plt
-import numpy as np
-
-df = pd.read_csv("l2reg_optimization/evaluations.csv")
-
-lr = df[["l2_reg"]].to_numpy()
-values = df[["value"]].to_numpy()
-
-plt.scatter(lr, values)
-plt.xlabel("l2 regularization")
-plt.ylabel("Top Validation Accuracy")
-plt.title("Gaussian Process Regression Optimization Evaluations")
-plt.show()
-
-#####################################################
-# The file /home/oleguer/Documents/p4/deepstuff/KTH_DeepLearning/Assignment_2/dropout_test.py contains:
+# The file /home/oleguer/Documents/p4/deepstuff/KTH_DeepLearning/Assignment_3/test_name_model.py contains:
  #####################################################
 
 
@@ -2505,7 +2611,10 @@ from glob import glob
 import os
 
 files = [f for f in glob('/home/oleguer/Documents/p4/deepstuff/KTH_DeepLearning/**', recursive=True) if os.path.isfile(f)]
-files = [f for f in files if ".py" in f and ".pyc" not in f and "/examples/" not in f and "Assignment_1" not in f]
+files = [f for f in files if ".py" in f and ".pyc" not in f\
+                                        and "/examples/" not in f\
+                                        and "Assignment_1" not in f\
+                                        and "Assignment_2" not in f]
 
 with open("joint_code.py", 'wb') as list_file:
     for file in files:
@@ -2606,6 +2715,12 @@ class MetaParamOptimizer:
 import numpy as np
 from abc import ABC, abstractmethod
 
+try:  # If installed try to use parallelized einsum
+    from einsum2 import einsum2 as einsum
+except:
+    print("Did not find einsum2, using numpy einsum (SLOWER)")
+    from numpy import einsum as einsum
+
 
 class Loss(ABC):
     """ Abstact class to represent Loss functions
@@ -2630,18 +2745,32 @@ class Loss(ABC):
 # LOSSES IMPLEMNETATIONS  #########################################
 
 class CrossEntropy(Loss):
+    def __init__(self, class_count=None):
+        self._EPS = 1e-5
+        self.classes_counts = class_count
+        
     def __call__(self, Y_pred, Y_real):
-        return -np.sum(np.log(np.sum(np.multiply(Y_pred, Y_real), axis=0)))/float(Y_pred.shape[1])
+        proportion_compensation = np.ones(Y_real.shape[-1])
+        if self.classes_counts is not None:
+            proportion_compensation = np.dot(Y_real.T, self.classes_counts)
+
+        logs = np.log(np.sum(np.multiply(Y_pred, Y_real), axis=0))
+        prod = np.dot(logs, proportion_compensation)
+        return -prod/float(Y_pred.shape[1])
 
     def backward(self, Y_pred, Y_real):
+        proportion_compensation = np.ones(Y_real.shape[-1])
+        if self.classes_counts is not None:
+            proportion_compensation = np.dot(Y_real.T, self.classes_counts)
         # d(-log(x))/dx = -1/x
         f_y = np.multiply(Y_real, Y_pred)
         # Element-wise inverse
         loss_diff = - \
             np.reciprocal(f_y, out=np.zeros_like(
                 Y_pred), where=abs(f_y) > self._EPS)
+        # Account for class imbalance
+        loss_diff = loss_diff*proportion_compensation
         return loss_diff/float(Y_pred.shape[1])
-
 
 class CategoricalHinge(Loss):
     def __call__(self, Y_pred, Y_real):
@@ -2672,11 +2801,21 @@ class CategoricalHinge(Loss):
 from abc import ABC, abstractmethod
 import copy
 import numpy as np
+import time
+
+try:  # If installed try to use parallelized einsum
+    from einsum2 import einsum2 as einsum
+except:
+    print("Did not find einsum2, using numpy einsum (SLOWER)")
+    from numpy import einsum as einsum
+
+# Layer Templates #######################################################
 
 
 class Layer(ABC):
-    """ Abstact class to represent Layer layers
-        An Layer has:
+    """ Abstact class to represent Layers
+        A Layer has:
+            - compile  method which computes input/output shapes (and intializes weights)
             - __call__ method to apply Layer function to the inputs
             - gradient method to add Layer function gradient to the backprop
     """
@@ -2684,6 +2823,28 @@ class Layer(ABC):
 
     def __init__(self):
         self.weights = None
+        self.is_compiled = False
+        self.input_shape = None
+        self.output_shape = None
+        # NOTE: INPUT/OUTPUT shapes ignore
+
+    @abstractmethod
+    def compile(self, input_shape):
+        """ Updates self.input_shape (and self.output_shape)
+            If input_dim not set by user, when added to a model 
+            this method is called based on previous layer output_shape
+
+            For trainable layers, it also should initializes weights and
+            gradient placeholders according to input_shape.
+
+            Note: input_shape should be a tuple of the shape
+            ignoring the number of samples (last elem)
+        """
+        input_shape = input_shape if type(
+            input_shape) is tuple else (input_shape, )
+        self.input_shape = input_shape
+        self.is_compiled = True
+        # print("compiled")
 
     @abstractmethod
     def __call__(self, inputs):
@@ -2696,57 +2857,22 @@ class Layer(ABC):
         pass
 
 
-# TRAINABLE LAYERS ######################################################
+class ConstantShapeLayer(Layer):
+    """ Common structure of Layers which do not modify the shape of input and output
+    """
 
-class Dense(Layer):
-    def __init__(self, nodes, input_dim, weight_initialization="in_dim"):
-        self.nodes = nodes
-        self.input_shape = input_dim
-        self.__initialize_weights(weight_initialization)
-        self.dw = np.zeros(self.weights.shape)  # Weight updates
+    def __init__(self, input_shape=None):
+        super().__init__()
+        if input_shape is not None:
+            self.compile(input_shape)
 
-    def __call__(self, inputs):
-        self.inputs = np.append(
-            inputs, [np.ones(inputs.shape[1])], axis=0)  # Add biases
-        return self.weights*self.inputs
-
-    def backward(self, in_gradient, lr=0.001, momentum=0.7, l2_regularization=0.1):
-        # Previous layer error propagation
-        # Remove bias TODO Think about this
-        left_layer_gradient = (self.weights.T*in_gradient)[:-1, :]
-
-        # Regularization
-        regularization_weights = copy.deepcopy(self.weights)
-        regularization_weights[:, -1] = 0  # Bias col to 0
-        regularization_term = 2*l2_regularization * \
-            regularization_weights  # Only current layer weights != 0
-
-        # Weight update
-        # TODO: Rremove self if not going to update it
-        self.gradient = in_gradient*self.inputs.T + regularization_term
-        self.dw = momentum*self.dw + (1-momentum)*self.gradient
-        self.weights -= lr*self.dw
-        return left_layer_gradient
-
-    def __initialize_weights(self, weight_initialization):
-        if weight_initialization == "normal":
-            self.weights = np.matrix(np.random.normal(
-                0.0, 1./100.,
-                                    (self.nodes, self.input_shape+1)))  # Add biases
-        if weight_initialization == "in_dim":
-            self.weights = np.matrix(np.random.normal(
-                0.0, 1./float(np.sqrt(self.input_shape)),
-                (self.nodes, self.input_shape+1)))  # Add biases
-        if weight_initialization == "xavier":
-            limit = np.sqrt(6/(self.nodes+self.input_shape))
-            self.weights = np.matrix(np.random.uniform(
-                low=-limit,
-                high=limit,
-                size=(self.nodes, self.input_shape+1)))  # Add biases
+    def compile(self, input_shape):
+        super().compile(input_shape)  # Populates self.input_shape and self.is_compiled
+        self.output_shape = self.input_shape
 
 
-# Activation Layers ######################################################
-class Softmax(Layer):
+# Activation Layers #####################################################
+class Softmax(ConstantShapeLayer):
     def __call__(self, x):
         self.outputs = np.exp(x) / np.sum(np.exp(x), axis=0)
         return self.outputs
@@ -2759,7 +2885,7 @@ class Softmax(Layer):
         return gradient
 
 
-class Relu(Layer):
+class Relu(ConstantShapeLayer):
     def __call__(self, x):
         self.inputs = x
         return np.multiply(x, (x > 0))
@@ -2768,19 +2894,285 @@ class Relu(Layer):
         # TODO(Oleguer): review this
         return np.multiply((self.inputs > 0), in_gradient)
 
-class Dropout(Layer):
+# MISC LAYERS ###########################################################
+
+
+class Dropout(ConstantShapeLayer):
     def __init__(self, ones_ratio=0.7):
         self.name = "Dropout"
         self.ones_ratio = ones_ratio
 
     def __call__(self, x, apply=True):
         if apply:
-            self.mask = np.random.choice([0, 1], size=(x.shape), p=[1 - self.ones_ratio, self.ones_ratio])
+            self.mask = np.random.choice([0, 1], size=(x.shape), p=[
+                                         1 - self.ones_ratio, self.ones_ratio])
             return np.multiply(self.mask, x)
         return x
 
     def backward(self, in_gradient, **kwargs):
         return np.multiply(self.mask, in_gradient)
+
+
+class Flatten(Layer):
+    def __init__(self, input_shape=None):
+        super().__init__()
+        if input_shape is not None:
+            self.compile(input_shape)
+
+    def compile(self, input_shape):
+        super().compile(input_shape)  # Updates self.input_shape and self.is_compiled
+        self.output_shape = (np.prod(self.input_shape),)
+
+    def __call__(self, inputs):
+        self.__in_shape = inputs.shape  # Store inputs shape to use in backprop
+        m = self.output_shape[0]
+        n_points = inputs.shape[3]
+        return inputs.reshape((m, n_points))
+
+    def backward(self, in_gradient, **kwargs):
+        return np.array(in_gradient).reshape(self.__in_shape)
+
+
+class MaxPool2D(Layer):
+    def __init__(self, kernel_shape=(2, 2), stride=1, input_shape=None):
+        super().__init__()
+        self.kernel_shape = kernel_shape
+        self.s = stride  # TODO(oleguer) Implement stride
+        if input_shape is not None:
+            self.compile(input_shape)  # Only care about channels
+
+    def compile(self, input_shape):
+        # Input shape must be (height, width, channels,)
+        assert(len(input_shape) == 3)
+        super().compile(input_shape)
+        (ker_h, ker_w) = self.kernel_shape
+        out_h = int((input_shape[0] - ker_h)/self.s) + 1
+        out_w = int((input_shape[1] - ker_w)/self.s) + 1
+        self.output_shape = (out_h, out_w, input_shape[2],)
+
+    def __call__(self, inputs):
+        """ Forward pass of MaxPool2D
+            input should have shape (height, width, channels, n_images)
+        """
+        assert(len(inputs.shape) ==
+               4)  # Input must have shape (height, width, channels, n_images)
+        # Set input shape does not match with input sent
+        assert(inputs.shape[:3] == self.input_shape)
+
+        # Get shapes
+        (ker_h, ker_w) = self.kernel_shape
+        (out_h, out_w, _,) = self.output_shape
+
+        # Compute convolution
+        self.inputs = inputs  # Will be used in back pass
+        output = np.empty(shape=self.output_shape + (self.inputs.shape[3],))
+        for i in range(out_h):
+            for j in range(out_w):
+                # TODO(oleguer): Not sure if np.amax is parallel, look into  numexpr
+                in_block = self.inputs[self.s*i:self.s *
+                                       i+ker_h, self.s*j:self.s*j+ker_w, :, :]
+                output[i, j, :, :] = np.amax(in_block, axis=(0, 1,))
+        return output
+
+    def backward(self, in_gradient, **kwargs):
+        """ Pass gradient to left layer """
+        # Get shapes
+        (out_h, out_w, n_channels, n_points) = in_gradient.shape
+        (ker_h, ker_w) = self.kernel_shape
+
+        # Incoming gradient shape must match layer output shape
+        assert(out_h == self.output_shape[0])
+        # Incoming gradient shape must match layer output shape
+        assert(out_w == self.output_shape[1])
+
+        # Instantiate gradients
+        left_layer_gradient = np.zeros(
+            self.input_shape + (in_gradient.shape[-1],))
+        for i in range(out_h):
+            for j in range(out_w):
+                in_block = self.inputs[self.s*i:self.s *
+                                       i+ker_h, self.s*j:self.s*j+ker_w, :, :]
+                mask = np.equal(in_block, np.amax(
+                    in_block, axis=(0, 1,))).astype(int)
+                masked_gradient = mask*in_gradient[i, j, :, :]
+                left_layer_gradient[self.s*i:self.s*i+ker_h,
+                                    self.s*j:self.s*j+ker_w, :, :] += masked_gradient
+        return left_layer_gradient
+
+# TRAINABLE LAYERS ######################################################
+
+
+class Dense(Layer):
+    def __init__(self, nodes, input_dim=None, weight_initialization="in_dim"):
+        super().__init__()
+        self.nodes = nodes
+        self.weight_initialization = weight_initialization
+        if input_dim is not None:  # If user sets input, automatically compile
+            self.compile(input_dim)
+
+    def compile(self, input_shape):
+        super().compile(input_shape)  # Updates self.input_shape and self.is_compiled
+        self.__initialize_weights(self.weight_initialization)
+        self.dw = np.zeros(self.weights.shape)  # Weight updates
+        self.output_shape = (self.nodes,)
+
+    def __call__(self, inputs):
+        self.inputs = np.append(
+            inputs, [np.ones(inputs.shape[1])], axis=0)  # Add biases
+        return np.dot(self.weights, self.inputs)
+
+    def backward(self, in_gradient, lr=0.001, momentum=0.7, l2_regularization=0.1):
+        # Previous layer error propagation
+        # Remove bias TODO Think about this
+        left_layer_gradient = (np.dot(self.weights.T, in_gradient))[:-1, :]
+
+        # Regularization
+        regularization_weights = copy.deepcopy(self.weights)
+        regularization_weights[:, -1] = 0  # Bias col to 0
+        regularization_term = 2*l2_regularization * \
+            regularization_weights  # Only current layer weights != 0
+
+        # Weight update
+        # TODO: Rremove self if not going to update it
+        self.gradient = np.dot(
+            in_gradient, self.inputs.T) + regularization_term
+        self.dw = momentum*self.dw + (1-momentum)*self.gradient
+        self.weights -= lr*self.dw
+        return left_layer_gradient
+
+    def __initialize_weights(self, weight_initialization):
+        if weight_initialization == "normal":
+            self.weights = np.array(np.random.normal(
+                0.0, 1./100.,
+                                    (self.nodes, self.input_shape[0]+1)))  # Add biases
+        if weight_initialization == "in_dim":
+            self.weights = np.array(np.random.normal(
+                0.0, 1./float(np.sqrt(self.input_shape[0])),
+                (self.nodes, self.input_shape[0]+1)))  # Add biases
+        if weight_initialization == "xavier":
+            limit = np.sqrt(6/(self.nodes+self.input_shape[0]))
+            self.weights = np.array(np.random.uniform(
+                low=-limit,
+                high=limit,
+                size=(self.nodes, self.input_shape[0]+1)))  # Add biases
+
+
+class Conv2D(Layer):
+    def __init__(self, num_filters=5, kernel_shape=(5, 5), stride=1, dilation_rate=1, input_shape=None):
+        super().__init__()
+        self.num_filters = num_filters
+        self.s = stride
+        self.dilation = dilation_rate
+        self.kernel_shape = kernel_shape
+        aug_ker_h = (self.kernel_shape[0]-1)*self.dilation + 1
+        aug_ker_w = (self.kernel_shape[1]-1)*self.dilation + 1
+        # Kernel size considering dilation_rate
+        self.aug_kernel_shape = (aug_ker_h, aug_ker_w)
+        if input_shape is not None:
+            self.compile(input_shape)  # Only care about channels
+
+    def compile(self, input_shape):
+        # Input shape must be (height, width, channels,)
+        assert(len(input_shape) == 3)
+        super().compile(input_shape)
+        (ker_h, ker_w) = self.aug_kernel_shape
+        out_h = int((input_shape[0] - ker_h)/self.s) + 1
+        out_w = int((input_shape[1] - ker_w)/self.s) + 1
+        self.output_shape = (out_h, out_w, self.num_filters,)
+        self.__initialize_weights()
+
+    def __call__(self, inputs):
+        """ Forward pass of Conv Layer
+            input should have shape (height, width, channels, n_images)
+            channels should match kernel_shape
+        """
+        assert(len(inputs.shape) == 4)  # Input (height, width, channels, n_images)
+        # Set input shape does not match with input sent
+        assert(inputs.shape[:3] == self.input_shape)
+        # Filter number of channels must match input channels
+        assert(self.filters.shape[3] == inputs.shape[2])
+
+        # Get shapes
+        (aug_ker_h, aug_ker_w) = self.aug_kernel_shape
+        (out_h, out_w, _,) = self.output_shape
+
+        # Compute convolution
+        self.inputs = inputs  # Will be used in back pass
+        output = np.empty(shape=self.output_shape + (self.inputs.shape[3],))
+        for i in range(out_h):
+            for j in range(out_w):
+                in_block = inputs[self.s*i:self.s*i+aug_ker_h:self.dilation,
+                                  self.s*j:self.s*j+aug_ker_w:self.dilation, :, :]
+                output[i, j, :, :] = einsum(
+                    "ijcn,kijc->kn", in_block, self.filters)
+
+        # Add biases
+        output += einsum("ijcn,c->ijcn", np.ones(output.shape), self.biases)
+        return output
+
+    def backward(self, in_gradient, lr=0.001, momentum=0.7, l2_regularization=0.1):
+        """ Weight update
+        """
+        # Get shapes
+        (out_h, out_w, _, _) = in_gradient.shape
+        (aug_ker_h, aug_ker_w) = self.aug_kernel_shape
+
+        # Incoming gradient shape must match layer output shape
+        assert(out_h == self.output_shape[0])
+        # Incoming gradient shape must match layer output shape
+        assert(out_w == self.output_shape[1])
+
+        # Instantiate gradients
+        left_layer_gradient = np.zeros(
+            self.input_shape + (in_gradient.shape[-1],))
+        # Save it to compare with numerical (DEBUG)
+        self.filter_gradients = np.zeros(self.filters.shape)
+        self.bias_gradients = np.sum(in_gradient, axis=(0, 1, 3))
+
+        for i in range(out_h):
+            for j in range(out_w):
+                in_block = self.inputs[self.s*i:self.s*i+aug_ker_h:self.dilation,
+                                       self.s*j:self.s*j+aug_ker_w:self.dilation, :, :]
+                grad_block = in_gradient[i, j, :, :]
+                filter_grad = einsum("ijcn,kn->kijc", in_block, grad_block)
+                self.filter_gradients += filter_grad
+                left_layer_gradient[self.s*i:self.s*i+aug_ker_h:self.dilation,
+                                    self.s*j:self.s*j+aug_ker_w:self.dilation, :, :] +=\
+                    einsum("kijc,kn->ijcn", self.filters, grad_block)
+
+
+        self.filter_gradients += 2*l2_regularization*self.filters
+
+        if np.array_equal(self.dw, np.zeros(self.filters.shape)):
+            self.dw = self.filter_gradients
+        else:
+            self.dw = momentum*self.dw + (1-momentum)*self.filter_gradients
+
+        self.filters -= lr*self.dw  # TODO(oleguer): Add regularization
+        self.biases -= lr*self.bias_gradients
+        return left_layer_gradient
+
+    def __initialize_weights(self):
+        self.filters = []
+        self.biases = np.random.normal(0.0, 1./100., self.num_filters)
+        # self.biases = np.zeros(self.num_filters)
+        full_kernel_shape = self.kernel_shape + (self.input_shape[2],)
+        # self.biases = np.array([0, 1])
+        for i in range(self.num_filters):
+            kernel = np.random.normal(0.0, 1./100., full_kernel_shape)
+            # kernel = np.ones(full_kernel_shape)/3
+            if len(kernel.shape) == 2:
+                kernel = np.expand_dims(kernel, axis=2)
+            self.filters.append(kernel)
+        self.filters = np.array(self.filters)
+        self.dw = np.zeros(self.filters.shape)
+
+    def show_filters(self):
+        import matplotlib.pyplot as plt
+        fig, axes = plt.subplots(self.filters.shape[0])
+        for i in range(self.filters.shape[0]):
+            axes[i].imshow(self.filters[i][:, :, 0])
+        plt.show()
 
 
 #####################################################
@@ -2816,6 +3208,12 @@ class Sequential:
     def add(self, layer):
         """Add layer"""
         self.layers.append(layer)
+        if len(self.layers) > 1: # Compile layer using output shape of previous layer
+            assert(self.layers[-2].is_compiled)  # Input/Output shapes not set for previous layer!
+            # Set input shape to be previous layer output_shape
+            self.layers[-1].compile(input_shape=self.layers[-2].output_shape)
+        print(layer.input_shape)
+        # print(layer.output_shape)
 
     def predict(self, X, apply_dropout=True):
         """Forward pass"""
@@ -2827,10 +3225,18 @@ class Sequential:
                 vals = layer(vals)
         return vals
 
+    def predict_classes(self, X):
+        Y_pred_prob = self.predict(X, apply_dropout=False)
+        idx = np.argmax(Y_pred_prob, axis=0)
+        Y_pred_class = np.zeros(Y_pred_prob.shape)
+        Y_pred_class[idx, np.arange(Y_pred_class.shape[1])] = 1
+        return Y_pred_class
+
     def get_metric_loss(self, X, Y_real, use_dropout=True):
-        """ Returns loss and classification accuracy """
+        """ Returns loss and value of success metric
+        """
         if X is None or Y_real is None:
-            print("problem")
+            print("Attempting to get metrics of None")
             return 0, np.inf
         Y_pred_prob = self.predict(X, use_dropout)
         metric_val = 0
@@ -2852,13 +3258,16 @@ class Sequential:
 
     def fit(self, X, Y, X_val=None, Y_val=None, batch_size=None, epochs=None,
             iterations = None, lr=0.01, momentum=0.7, l2_reg=0.1,
-            shuffle_minibatch=True, callbacks=[], **kwargs):
+            shuffle_minibatch=True, compensate=False, callbacks=[], **kwargs):
         """ Performs backrpop with given parameters.
             save_path is where model of best val accuracy will be saved
         """
         assert(epochs is None or iterations is None) # Only one can set it limit
         if iterations is not None:
-            epochs = int(np.ceil(iterations/(X.shape[1]/batch_size)))
+            epochs = int(np.ceil(iterations/(X.shape[-1]/batch_size)))
+        else:
+            iterations = int(epochs*np.ceil((X.shape[-1]/batch_size)))
+
         # Store vars as class variables so they can be accessed by callbacks
         # TODO(think a better way)
         self.X = X
@@ -2870,7 +3279,10 @@ class Sequential:
         self.lr = lr
         self.momentum = momentum
         self.l2_reg = l2_reg
+        self.train_metric = 0
         self.val_metric = 0
+        self.train_loss = 0
+        self.val_loss = 0
         self.t = 0
 
         # Call callbacks
@@ -2882,31 +3294,44 @@ class Sequential:
         pbar = tqdm(list(range(self.epochs)))
         for self.epoch in pbar:
         # for self.epoch in range(self.epochs):
-            for X_minibatch, Y_minibatch in minibatch_split(X, Y, batch_size, shuffle_minibatch):
-                Y_pred_prob = self.predict(X_minibatch)  # Forward pass
+            for X_minibatch, Y_minibatch in minibatch_split(X, Y, batch_size, shuffle_minibatch, compensate):
+                # t = time.time()
+                self.Y_pred_prob = self.predict(X_minibatch)  # Forward pass
+                # print("forward_time:", time.time()-t)
+                # t = time.time()
                 gradient = self.loss.backward(
-                    Y_pred_prob, Y_minibatch)  # Loss grad
+                    self.Y_pred_prob, Y_minibatch)  # Loss grad
+                # print("loss_backward_time:", time.time()-t)
+                # print("backward")
                 for layer in reversed(self.layers):  # Backprop (chain rule)
+                    # t = time.time()
                     gradient = layer.backward(
                         in_gradient=gradient,
                         lr=self.lr,  # Trainable layer parameters
                         momentum=self.momentum,
                         l2_regularization=self.l2_reg)
+                    # print("gradient_time:", layer, time.time()-t)
+                # t = time.time()
                 # Call callbacks
                 for callback in callbacks:
                     callback.on_batch_end(self)
-                self.t += 1  # Step counter
                 if self.t >= iterations:
                     stop = True
                     break
+                self.t += 1  # Step counter
+                # print("batch_callbacks_time:", layer, time.time()-t)
+            # t = time.time()
             # Call callbacks
             for callback in callbacks:
                 callback.on_epoch_end(self)
+            # print("epoch_callbacks_time:", layer, time.time()-t)
+
             # Update progressbar
-            # pbar.set_description("Val acc: " + str(self.val_metric))
+            pbar.set_description("Train acc: " + str(np.round(self.train_metric*100, 2)) +\
+                                 "% Val acc: " + str(np.round(self.val_metric*100, 2)) +\
+                                 "% Train Loss: " + str(np.round(self.train_loss)))
             if stop:
                 break
-
 
     # IO functions ################################################
     def save(self, path):
@@ -2937,7 +3362,6 @@ import os
 sys.path.append(str(pathlib.Path(__file__).parent.absolute()))
 from models import Sequential
 
-
 class Callback(ABC):
     """ Abstract class to hold callbacks
     """
@@ -2962,7 +3386,8 @@ class MetricTracker(Callback):
     """ Tracks training metrics to plot and save afterwards
     """
 
-    def __init__(self):
+    def __init__(self, file_name="models/tracker"):
+        self.file_name = file_name
         self.train_losses = []
         self.val_losses = []
         self.train_metrics = []
@@ -2971,15 +3396,15 @@ class MetricTracker(Callback):
 
     def on_training_begin(self, model):
         self.metric_name = model.metric.name
-        self.__track(model)
+        # self.__track(model)
 
     def on_batch_end(self, model):
-        # self.learning_rates.append(model.lr)
         # self.__track(model)
         pass
 
     def on_epoch_end(self, model):
         self.__track(model)
+        self.save(self.file_name)
         pass
 
     def __track(self, model):
@@ -2991,13 +3416,15 @@ class MetricTracker(Callback):
         self.val_metrics.append(val_metric)
         self.learning_rates.append(model.lr)
         model.val_metric = val_metric
+        model.train_metric = train_metric
+        model.train_loss = train_loss
 
     def plot_training_progress(self, show=True, save=False, name="model_results", subtitle=None):
         fig, ax1 = plt.subplots()
         # Losses
         ax1.set_xlabel("Epoch")
         ax1.set_ylabel("Loss")
-        ax1.set_ylim(bottom=np.nanmin(self.val_losses)/2)
+        ax1.set_ylim(bottom=0)
         ax1.set_ylim(top=1.25*np.nanmax(self.val_losses))
         if len(self.val_losses) > 0:
             ax1.plot(list(range(len(self.val_losses))),
@@ -3005,7 +3432,7 @@ class MetricTracker(Callback):
         ax1.plot(list(range(len(self.train_losses))),
                  self.train_losses, label="Train loss", c="orange")
         ax1.tick_params(axis='y')
-        plt.legend(loc='center right')
+        plt.legend(loc='upper left')
 
         # Accuracies
         ax2 = ax1.twinx()
@@ -3063,8 +3490,17 @@ class MetricTracker(Callback):
             plt.show()
 
     def save(self, file):
-        np.save(file + "_lr", self.learning_rates)
-        np.save(file + "_acc", self.train_metrics)
+        # np.save(file + "_lr", self.learning_rates)
+        np.save(file + "_train_met", self.train_metrics)
+        np.save(file + "_val_met", self.val_metrics)
+        np.save(file + "_train_loss", self.train_losses)
+        np.save(file + "_val_loss", self.val_losses)
+
+    def load(self, file):
+        self.train_metrics = np.load(file + "_train_met.npy").tolist()
+        self.val_metrics = np.load(file + "_val_met.npy").tolist()
+        self.train_losses = np.load(file + "_train_loss.npy").tolist()
+        self.val_losses = np.load(file + "_val_loss.npy").tolist()
 
 
 class BestModelSaver(Callback):
@@ -3077,7 +3513,7 @@ class BestModelSaver(Callback):
         self.best_model_loss = None
         self.best_model_metric = None
 
-    def on_batch_end(self, model):
+    def on_epoch_end(self, model):
         val_metric = model.get_metric_loss(model.X_val, model.Y_val)[0]
         if val_metric >= self.best_metric:
             self.best_metric = model.val_metric
@@ -3146,7 +3582,7 @@ def getXY(dataset, num_classes=10):
 	labels = np.array(dataset[b"labels"])
 	one_hot_labels = np.zeros((labels.size, num_classes))
 	one_hot_labels[np.arange(labels.size), labels] = 1
-	return np.mat(dataset[b"data"]).T, np.mat(one_hot_labels).T
+	return np.array(dataset[b"data"]).T, np.array(one_hot_labels).T
 
 def LoadXY(filename):
 	return getXY(LoadBatch(filename))
@@ -3159,22 +3595,50 @@ def plot(flatted_image, shape=(32, 32, 3), order='F'):
 def accuracy(Y_pred_classes, Y_real):
 	return np.sum(np.multiply(Y_pred_classes, Y_real))/Y_pred_classes.shape[1]
 
-def minibatch_split(X, Y, batch_size, shuffle=True):
+def minibatch_split(X, Y, batch_size, shuffle=True, compansate=False):
 	"""Yields splited X, Y matrices in minibatches of given batch_size"""
-	if (batch_size is None) or (batch_size > X.shape[1]):
-		batch_size = X.shape[1]
-	indx = list(range(X.shape[1]))
-	if shuffle:
-		np.random.shuffle(indx)
-	for i in range(int(X.shape[1]/batch_size)):
-		pos = i*batch_size
-		# Get minibatch
-		X_minibatch = X[:, indx[pos:pos+batch_size]]
-		Y_minibatch = Y[:, indx[pos:pos+batch_size]]
-		if i == int(X.shape[1]/batch_size) - 1:  # Get all the remaining
-			X_minibatch = X[:, indx[pos:]]
-			Y_minibatch = Y[:, indx[pos:]]
-		yield X_minibatch, Y_minibatch
+	if (batch_size is None) or (batch_size > X.shape[-1]):
+		batch_size = X.shape[-1]
+
+	if not compansate:
+		indx = list(range(X.shape[-1]))
+		if shuffle:
+			np.random.shuffle(indx)
+		for i in range(int(X.shape[-1]/batch_size)):
+			pos = i*batch_size
+			# Get minibatch
+			X_minibatch = X[..., indx[pos:pos+batch_size]]
+			Y_minibatch = Y[..., indx[pos:pos+batch_size]]
+			if i == int(X.shape[-1]/batch_size) - 1:  # Get all the remaining
+				X_minibatch = X[..., indx[pos:]]
+				Y_minibatch = Y[..., indx[pos:]]
+			yield X_minibatch, Y_minibatch
+	else:
+		class_sum = np.sum(Y, axis=1)*Y.shape[0]
+		class_count = np.reciprocal(class_sum, where=abs(class_sum) > 0)
+		x_probas = np.dot(class_count, Y)
+		n = X.shape[-1]
+		for i in range(int(n/batch_size)):
+			indxs = np.random.choice(range(n), size=batch_size, replace=True, p=x_probas)
+			yield X[..., indxs], Y[..., indxs]
+
+def plot_confusion_matrix(Y_pred, Y_real, class_names, path=None):
+	heatmap = np.zeros((Y_pred.shape[0], Y_pred.shape[0]))
+	for n in range(Y_pred.shape[-1]):
+		i = np.where(Y_pred[:, n]==1)[0][0]
+		j = np.where(Y_real[:, n]==1)[0][0]
+		heatmap[i, j] += 1
+		
+	import seaborn as sn
+	import pandas as pd
+	
+	df_cm = pd.DataFrame(heatmap, index = [i for i in class_names],
+								  columns = [i for i in class_names])
+	plt.figure(figsize = (10,10))
+	sn.heatmap(df_cm, robust=True, square=True,annot=True, fmt='g')
+	if path is not None:
+		plt.savefig(path)
+	plt.show()
 
 #####################################################
 # The file /home/oleguer/Documents/p4/deepstuff/KTH_DeepLearning/Toy-DeepLearning-Framework/mlp/metrics.py contains:
