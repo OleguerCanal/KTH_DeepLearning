@@ -8,6 +8,7 @@ from mlp.metrics import Accuracy
 from mlp.models import Sequential
 from mlp.losses import CrossEntropy
 from mlp.layers import VanillaRNN
+from mlp.batchers import RnnBatcher
 from mlp.callbacks import MetricTracker, BestModelSaver, LearningRateScheduler
 from mlp.utils import one_hotify
 
@@ -24,31 +25,47 @@ if __name__ == "__main__":
 
     # Define hyperparams
     K = len(ind_to_char)
-    seq_length = 25  # n
+    seq_length = 5  # n
 
-    v_rnn = VanillaRNN(state_size=100, input_size=K, output_size=K, seq_length=1)
-
-
-    x = (char_to_ind['.'], )
-    x = one_hotify(x, num_classes = K)
-    print(x.shape)
-    for i in range(10):
-        probs = v_rnn(x)
-        probs = probs.flatten()
-        # next_elem = np.random.choice(list(range(len(probs))), probs)
-        next_elem = np.argmax(probs)
-        print(probs)
-        print(ind_to_char[next_elem])
-        x = one_hotify(next_elem, K)
+    batcher = RnnBatcher(seq_length)
 
     # # Define model
-    # model = Sequential(loss=CrossEntropy(class_count=None), metric=Accuracy())
-    # model.add(VanillaRNN(state_size=100, output_size=K, seq_length=seq_length))
+    v_rnn = VanillaRNN(state_size=100, input_size=K, output_size=K)
+    model = Sequential(loss=CrossEntropy(class_count=None), metric=Accuracy())
+    model.add(v_rnn)
+
+    # x = (char_to_ind['.'], )
+    # x = one_hotify(x, num_classes = K)
+    # print(x.shape)
+    # for i in range(10):
+    #     probs = v_rnn(x)
+    #     print(probs.shape)
+    #     probs = probs.flatten()
+    #     # next_elem = np.random.choice(list(range(len(probs))), probs)
+    #     next_elem = np.argmax(probs)
+    #     print(probs)
+    #     print(ind_to_char[next_elem])
+    #     x = one_hotify(next_elem, K)
+
+
 
     # # Fit model
-    # model.fit(X=encoded_data,
-    #           batch_size=100, epochs=500, lr = 1e-3, momentum=0.8, l2_reg=0.001,
-    #           compensate=True, callbacks=callbacks)
+    model.fit(X=encoded_data, epochs=1, lr = 1e-3, momentum=0.9, l2_reg=0.001,
+              batcher=batcher, callbacks=[])
     # model.save("models/names_best")
 
     # mt.plot_training_progress(save=True, name="figures/names_best")
+
+
+    # x = np.array((char_to_ind['o'], char_to_ind['l'], char_to_ind['i'], ))
+    # x = one_hotify(x, num_classes = K)
+    # pred = [ind_to_char[elem] for elem in np.argmax(x, axis=0)]
+    # print(pred)
+    # print(x)
+    # print(x.shape)
+    # for i in range(5):
+    #     probs = v_rnn(x)
+    #     next_elem = np.argmax(probs, axis=0)
+    #     pred = [ind_to_char[elem] for elem in next_elem]
+    #     print(pred)
+    #     x = one_hotify(next_elem, K)
