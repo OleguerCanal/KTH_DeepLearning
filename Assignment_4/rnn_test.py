@@ -28,30 +28,16 @@ if __name__ == "__main__":
     K = len(ind_to_char)
     seq_length = 20  # n
 
-    batcher = RnnBatcher(seq_length)
-
-    # # Define model
+    # Define model
     v_rnn = VanillaRNN(state_size=10, input_size=K, output_size=K)
     model = Sequential(loss=CrossEntropy(class_count=None), metric=Accuracy())
     model.add(v_rnn)
 
-    # x = (char_to_ind['.'], )
-    # x = one_hotify(x, num_classes = K)
-    # print(x.shape)
-    # for i in range(10):
-    #     probs = v_rnn(x)
-    #     print(probs.shape)
-    #     probs = probs.flatten()
-    #     # next_elem = np.random.choice(list(range(len(probs))), probs)
-    #     next_elem = np.argmax(probs)
-    #     print(probs)
-    #     print(ind_to_char[next_elem])
-    #     x = one_hotify(next_elem, K)
-
-    # # Fit model
-    model.fit(X=encoded_data, epochs=100, lr = 5e-3, momentum=0.95,
+    # Fit model
+    batcher = RnnBatcher(seq_length)
+    model.fit(X=encoded_data, epochs=3, lr = 5e-3, momentum=0.95,
               batcher=batcher, callbacks=callbacks)
-    # model.save("models/names_best")
+    model.save("models/rnn_test")
 
     mt.plot_training_progress(save=True, name="figures/names_best")
     
