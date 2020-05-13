@@ -36,7 +36,7 @@ def ComputeGradsNum(x, y_real, model, l2_reg, h):
     print("Computing numerical gradients...")
     W = copy.deepcopy(model.layers[0].U)
 
-    print(W)
+    # print(W)
 
     no 	= 	W.shape[0]
     d 	= 	x.shape[0]
@@ -84,7 +84,7 @@ if __name__ == "__main__":
 
 
     model.layers[0].reset_state(copy.deepcopy(state))
-    print(model.layers[0].U)
+    # print(model.layers[0].U)
 
     # Fit model
     l2_reg = 0.0

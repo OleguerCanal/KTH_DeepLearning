@@ -20,8 +20,9 @@ np.set_printoptions(suppress=True)
 np.set_printoptions(precision=3)
 
 encoded_data, ind_to_char, char_to_ind = load_data(path="data/test.txt")
+print(encoded_data)
 K = len(ind_to_char)
-seq_length = 3  # n
+seq_length = 7  # n
 state_size = 5
 state = np.zeros((state_size,1))
 
@@ -89,17 +90,22 @@ if __name__ == "__main__":
 
     # Fit model
     l2_reg = 0.0
-    model.fit(X=encoded_data, epochs=1, lr = 2e-2, momentum=0.95, l2_reg=l2_reg,
+    model.fit(X=encoded_data, epochs=1, lr = 0, momentum=0.0, l2_reg=l2_reg,
               batcher=RnnBatcher(seq_length), callbacks=[])
     print(model.layers[0].dl_dv)
     anal = copy.deepcopy(model.layers[0].dl_dv)
 
     model.layers[0].reset_state(copy.deepcopy(state))
 
-    x = np.array((char_to_ind['o'], char_to_ind['l'], char_to_ind['i'], ))
+    x = "abcdefg"
+    y = "bcdefga"
+    x = np.array([char_to_ind[char] for char in x])
     x = one_hotify(x, num_classes = K)
-    y = np.array((char_to_ind['l'], char_to_ind['i'], char_to_ind['s'], ))
+    y = np.array([char_to_ind[char] for char in y])
     y = one_hotify(y, num_classes = K)
+    print(x)
+    print(y)
+
 
     grad_w = ComputeGradsNum(x, y, model, l2_reg, h=1e-6)
     num = copy.deepcopy(grad_w)

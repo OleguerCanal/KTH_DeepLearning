@@ -3,13 +3,12 @@ from helper import load_data
 import copy
 import sys, pathlib
 from tqdm import tqdm
-import time
 sys.path.append(str(pathlib.Path(__file__).resolve().parents[1]) + "/Toy-DeepLearning-Framework/")
 
 from mlp.metrics import Accuracy
 from mlp.models import Sequential
 from mlp.losses import CrossEntropy
-from mlp.layers import VanillaRNN, Softmax
+from mlp.layers import VanillaRNN
 from mlp.batchers import RnnBatcher
 from mlp.callbacks import MetricTracker, BestModelSaver, LearningRateScheduler
 from mlp.utils import one_hotify
@@ -18,16 +17,16 @@ np.random.seed(0)
 np.random.seed = 0
 
 np.set_printoptions(suppress=True)
-np.set_printoptions(precision=3)
+np.set_printoptions(precision=5)
 
 encoded_data, ind_to_char, char_to_ind = load_data(path="data/test.txt")
 K = len(ind_to_char)
-seq_length = 7  # n
-state_size = 20
-state = np.zeros((state_size,1))
+seq_length = 3  # n
+state_size = 5
+state = np.array(np.random.normal(0.1, 1./100., (state_size,1)))
 
 def evaluate_cost(W, x, y_real, l2_reg):
-    model.layers[0].W = W
+    model.layers[0].c = W
     y_pred = model.predict(x)
     c = model.cost(y_pred, y_real, l2_reg)
     return c
@@ -35,9 +34,9 @@ def evaluate_cost(W, x, y_real, l2_reg):
 def ComputeGradsNum(x, y_real, model, l2_reg, h):
     """ Converted from matlab code """
     print("Computing numerical gradients...")
-    W = copy.deepcopy(model.layers[0].W)
+    W = copy.deepcopy(model.layers[0].c)
 
-    print(W)
+    # print(W)
 
     no 	= 	W.shape[0]
     d 	= 	x.shape[0]
@@ -82,38 +81,28 @@ if __name__ == "__main__":
     v_rnn = VanillaRNN(state_size=state_size, input_size=K, output_size=K)
     model = Sequential(loss=CrossEntropy(class_count=None), metric=Accuracy())
     model.add(v_rnn)
-    model.add(Softmax())
 
-    # state = np.array(np.random.normal(0.1, 1./100.,
-    #         (v_rnn.state_size,1)))
+
     model.layers[0].reset_state(copy.deepcopy(state))
-    print(model.layers[0].W)
+    # print(model.layers[0].c)
 
     # Fit model
     l2_reg = 0.0
-    t1 = time.time()
-    model.fit(X=encoded_data, epochs=1, lr = 0, l2_reg=l2_reg,
+    model.fit(X=encoded_data, epochs=1, lr = 2e-2, momentum=0.95, l2_reg=l2_reg,
               batcher=RnnBatcher(seq_length), callbacks=[])
-    t_anal = time.time() - t1
-    print(model.layers[0].dl_dw)
-    anal = copy.deepcopy(model.layers[0].dl_dw)
+    print(model.layers[0].dl_dc)
+    anal = copy.deepcopy(model.layers[0].dl_dc)
 
     model.layers[0].reset_state(copy.deepcopy(state))
 
-    x = "abcdefg"
-    y = "bcdefga"
-    x = np.array([char_to_ind[char] for char in x])
+    x = np.array((char_to_ind['o'], char_to_ind['l'], char_to_ind['i'], ))
     x = one_hotify(x, num_classes = K)
-    y = np.array([char_to_ind[char] for char in y])
+    y = np.array((char_to_ind['l'], char_to_ind['i'], char_to_ind['s'], ))
     y = one_hotify(y, num_classes = K)
 
-    t2 = time.time()
     grad_w = ComputeGradsNum(x, y, model, l2_reg, h=1e-6)
-    num_time = time.time() - t2
     num = copy.deepcopy(grad_w)
     print("num")
     print(grad_w)
 
     print_error(anal, num)
-
-    print(num_time/t_anal)
